@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>English Quizzes</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px 48px;
+      font-family: Georgia, serif;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      animation: fadeInUp 0.5s ease;
+    }
+
+    /* Header */
+    .badge {
+      display: inline-block;
+      background: linear-gradient(90deg, #818cf8, #a78bfa);
+      color: #fff;
+      font-size: 11px;
+      font-family: monospace;
+      letter-spacing: 3px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .header h1 {
+      color: #f1f5f9;
+      font-size: 36px;
+      font-weight: bold;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: #94a3b8;
+      font-size: 15px;
+      font-style: italic;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(129,140,248,0.3), transparent);
+      margin-bottom: 36px;
+    }
+
+    /* Cards */
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      text-decoration: none;
+      transition: transform 0.2s, border-color 0.2s, background 0.2s;
+      backdrop-filter: blur(12px);
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(129,140,248,0.5);
+      background: rgba(129,140,248,0.07);
+    }
+    .card:active {
+      transform: translateY(0px);
+    }
+
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+
+    .card-body {
+      flex: 1;
+    }
+    .card-title {
+      color: #f1f5f9;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      color: #94a3b8;
+      font-size: 13px;
+      font-style: italic;
+      line-height: 1.5;
+    }
+    .card-tag {
+      display: inline-block;
+      background: rgba(129,140,248,0.15);
+      border: 1px solid rgba(129,140,248,0.3);
+      color: #a78bfa;
+      font-size: 11px;
+      font-family: monospace;
+      letter-spacing: 1px;
+      padding: 2px 10px;
+      border-radius: 20px;
+      margin-top: 8px;
+    }
+
+    .card-arrow {
+      color: #475569;
+      font-size: 22px;
+      transition: color 0.2s, transform 0.2s;
+    }
+    .card:hover .card-arrow {
+      color: #818cf8;
+      transform: translateX(4px);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 36px;
+      color: #334155;
+      font-size: 13px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <div><span class="badge">ENGLISH</span></div>
+      <h1>Grammar Quizzes</h1>
+      <p>Choose a topic and test your knowledge</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Card 1: Simple Present -->
+    <a class="card" href="index.html">
+      <div class="card-icon">📝</div>
+      <div class="card-body">
+        <div class="card-title">Simple Present</div>
+        <div class="card-desc">Verb conjugation, questions and negatives with do / does.</div>
+        <span class="card-tag">8 QUESTÕES</span>
+      </div>
+      <div class="card-arrow">›</div>
+    </a>
+
+    <!-- Card 2: In / On / At -->
+    <a class="card" href="in_on_at.html">
+      <div class="card-icon">📍</div>
+      <div class="card-body">
+        <div class="card-title">Prepositions: In / On / At</div>
+        <div class="card-desc">Practice using the right preposition of time and place.</div>
+        <span class="card-tag">8 QUESTÕES</span>
+      </div>
+      <div class="card-arrow">›</div>
+    </a>
+
+    <div class="footer">Select a quiz above to get started ✦</div>
+  </div>
+</body>
+</html>
