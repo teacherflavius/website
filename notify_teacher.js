@@ -1,5 +1,5 @@
 (function () {
-  const WHATSAPP_URL = "https://wa.me/5534998349756";
+  const WHATSAPP_URL = "https://wa.me/5534998349756?text=Teacher%2C%20acabei%20de%20me%20matricular%20nas%20aulas.";
   const MESSAGE = "Agora que você finalizou este quiz, avise o professor";
   const BUTTON_LABEL = "AVISE O PROFESSOR";
 
