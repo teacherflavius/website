@@ -65,6 +65,41 @@
     return String(pixKey || "").trim();
   }
 
+  function normalizeAvailability(availability) {
+    const days = ["seg", "ter", "qua", "qui", "sex"];
+    const hours = ["09", "10", "12", "13", "15", "17", "18", "20", "21"];
+    const normalized = {};
+
+    days.forEach(function (day) {
+      const selected = Array.isArray(availability && availability[day]) ? availability[day] : [];
+      normalized[day] = selected.filter(function (hour) {
+        return hours.includes(hour);
+      });
+    });
+
+    return normalized;
+  }
+
+  function countAvailabilitySlots(availability) {
+    return Object.keys(availability || {}).reduce(function (total, day) {
+      return total + (Array.isArray(availability[day]) ? availability[day].length : 0);
+    }, 0);
+  }
+
+  function availabilityToProfileColumns(availability) {
+    const days = ["seg", "ter", "qua", "qui", "sex"];
+    const hours = ["09", "10", "12", "13", "15", "17", "18", "20", "21"];
+    const columns = {};
+
+    days.forEach(function (day) {
+      hours.forEach(function (hour) {
+        columns["availability_" + day + "_" + hour] = Array.isArray(availability[day]) && availability[day].includes(hour);
+      });
+    });
+
+    return columns;
+  }
+
   async function getSession() {
     const client = getClient();
     if (!client) return null;
@@ -132,6 +167,8 @@
     const cleanCpf = normalizeCpf(data.cpf);
     const cleanWhatsapp = normalizeWhatsapp(data.whatsapp);
     const pixKey = normalizePixKey(data.pix_key);
+    const availability = normalizeAvailability(data.availability);
+    const availabilityColumns = availabilityToProfileColumns(availability);
 
     if (!data.name || !data.email || !data.password || !cleanCpf || !cleanWhatsapp || !pixKey) {
       throw new Error("Preencha todos os campos da matrícula.");
@@ -145,11 +182,16 @@
       throw new Error("WhatsApp inválido.");
     }
 
+    if (countAvailabilitySlots(availability) === 0) {
+      throw new Error("Selecione pelo menos um horário disponível para aulas durante a semana.");
+    }
+
     const enrollmentMetadata = {
       name: data.name,
       cpf: cleanCpf,
       whatsapp: cleanWhatsapp,
       pix_key: pixKey,
+      availability: availability,
       enrollment_code: enrollmentCode,
       enrolled: true
     };
@@ -168,16 +210,17 @@
     if (response.data && response.data.user) {
       const userId = response.data.user.id;
 
-      const profilePayload = {
+      const profilePayload = Object.assign({
         id: userId,
         name: data.name,
         email: data.email,
         cpf: cleanCpf,
         whatsapp: cleanWhatsapp,
         pix_key: pixKey,
+        availability: availability,
         enrollment_code: enrollmentCode,
         enrolled: true
-      };
+      }, availabilityColumns);
 
       const basicProfileResponse = await client.from("profiles").upsert(profilePayload).select().single();
 
@@ -185,17 +228,18 @@
         console.warn("Não foi possível atualizar profiles com os dados de matrícula:", basicProfileResponse.error.message);
       }
 
-      await tryInsertEnrollmentRecord(client, {
+      await tryInsertEnrollmentRecord(client, Object.assign({
         user_id: userId,
         name: data.name,
         cpf: cleanCpf,
         email: data.email,
         whatsapp: cleanWhatsapp,
         pix_key: pixKey,
+        availability: availability,
         enrollment_code: enrollmentCode,
         enrolled: true,
         created_at: new Date().toISOString()
-      });
+      }, availabilityColumns));
     }
 
     return {
@@ -231,6 +275,7 @@
       cpf: user.user_metadata && user.user_metadata.cpf || "",
       whatsapp: user.user_metadata && user.user_metadata.whatsapp || "",
       pix_key: user.user_metadata && user.user_metadata.pix_key || "",
+      availability: user.user_metadata && user.user_metadata.availability || {},
       enrollment_code: user.user_metadata && user.user_metadata.enrollment_code || "",
       enrolled: user.user_metadata && user.user_metadata.enrolled || false
     };
