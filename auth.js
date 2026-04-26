@@ -112,6 +112,14 @@
     return response.data;
   }
 
+  async function tryInsertEnrollmentRecord(client, payload) {
+    try {
+      await client.from("student_enrollments").insert(payload);
+    } catch (error) {
+      console.warn("Tabela student_enrollments indisponível. Matrícula mantida nos metadados do usuário.", error);
+    }
+  }
+
   async function enrollStudent(data) {
     const client = getClient();
     if (!client) throw new Error("Supabase não configurado.");
@@ -132,17 +140,19 @@
       throw new Error("WhatsApp inválido.");
     }
 
+    const enrollmentMetadata = {
+      name: data.name,
+      cpf: cleanCpf,
+      whatsapp: cleanWhatsapp,
+      enrollment_code: enrollmentCode,
+      enrolled: true
+    };
+
     const response = await client.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
-        data: {
-          name: data.name,
-          cpf: cleanCpf,
-          whatsapp: cleanWhatsapp,
-          enrollment_code: enrollmentCode,
-          enrolled: true
-        },
+        data: enrollmentMetadata,
         emailRedirectTo: getRedirectUrl()
       }
     });
@@ -150,20 +160,28 @@
     if (response.error) throw response.error;
 
     if (response.data && response.data.user) {
-      const profilePayload = {
-        id: response.data.user.id,
+      const userId = response.data.user.id;
+
+      const basicProfileResponse = await client.from("profiles").upsert({
+        id: userId,
         name: data.name,
-        email: data.email,
+        email: data.email
+      }).select().single();
+
+      if (basicProfileResponse.error) {
+        console.warn("Não foi possível atualizar profiles com dados básicos:", basicProfileResponse.error.message);
+      }
+
+      await tryInsertEnrollmentRecord(client, {
+        user_id: userId,
+        name: data.name,
         cpf: cleanCpf,
+        email: data.email,
         whatsapp: cleanWhatsapp,
         enrollment_code: enrollmentCode,
-        enrolled: true
-      };
-
-      const profileResponse = await client.from("profiles").upsert(profilePayload).select().single();
-      if (profileResponse.error) {
-        throw new Error("Conta criada, mas não foi possível registrar a matrícula em profiles. Verifique se a tabela profiles possui as colunas cpf, whatsapp, enrollment_code e enrolled.");
-      }
+        enrolled: true,
+        created_at: new Date().toISOString()
+      });
     }
 
     return {
@@ -192,8 +210,17 @@
     const user = await getUser();
     if (!client || !user) return null;
     const response = await client.from("profiles").select("*").eq("id", user.id).single();
-    if (response.error) return { id: user.id, name: user.user_metadata && user.user_metadata.name || "", email: user.email };
-    return response.data;
+    const fallbackProfile = {
+      id: user.id,
+      name: user.user_metadata && user.user_metadata.name || "",
+      email: user.email,
+      cpf: user.user_metadata && user.user_metadata.cpf || "",
+      whatsapp: user.user_metadata && user.user_metadata.whatsapp || "",
+      enrollment_code: user.user_metadata && user.user_metadata.enrollment_code || "",
+      enrolled: user.user_metadata && user.user_metadata.enrolled || false
+    };
+    if (response.error) return fallbackProfile;
+    return Object.assign({}, fallbackProfile, response.data);
   }
 
   async function saveActivityResult(result) {
