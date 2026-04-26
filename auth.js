@@ -19,6 +19,10 @@
     return window.teacherFlavioSupabase;
   }
 
+  function getRedirectUrl() {
+    return new URL("login.html", window.location.href).href;
+  }
+
   function showConfigWarning() {
     if (document.getElementById("supabase-config-warning")) return;
     const warning = document.createElement("div");
@@ -74,7 +78,10 @@
     const response = await client.auth.signUp({
       email: email,
       password: password,
-      options: { data: { name: name } }
+      options: {
+        data: { name: name },
+        emailRedirectTo: getRedirectUrl()
+      }
     });
     if (response.error) throw response.error;
 
