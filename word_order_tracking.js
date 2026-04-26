@@ -101,13 +101,14 @@
       email: student.email,
       quiz: EXERCISE_TITLE,
       score: score,
-      total: total
+      total: total,
+      activity_type: "word_order"
     });
 
     if (!document.getElementById("word-order-saved-message")) {
       const message = document.createElement("p");
       message.id = "word-order-saved-message";
-      message.textContent = "Resultado registrado e enviado para a planilha.";
+      message.textContent = "Resultado registrado.";
       message.style.color = "#6ee7b7";
       message.style.fontSize = "13px";
       message.style.marginBottom = "18px";
