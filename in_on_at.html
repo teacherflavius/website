@@ -12,8 +12,60 @@
   <script src="supabase_results.js"></script>
   <script src="quiz_core.js?v=no-switch-student-20260426"></script>
   <script src="notify_teacher.js"></script>
+  <style>
+    .video-section {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto 28px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      font-family: Georgia, serif;
+    }
+
+    .video-section p {
+      color: #f1f5f9;
+      font-size: 16px;
+      line-height: 1.5;
+      text-align: center;
+      margin: 0 0 14px;
+      font-weight: bold;
+    }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #0f172a;
+      border: 1px solid rgba(129,140,248,0.25);
+    }
+
+    .video-wrapper iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+  </style>
 </head>
 <body>
+  <div class="video-section">
+    <p>Assista esse vídeo antes de responder o quiz</p>
+    <div class="video-wrapper">
+      <iframe
+        src="https://www.youtube.com/embed/TdspSfiGF8s"
+        title="Vídeo sobre IN, ON e AT"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+
   <div id="root"></div>
   <script>
     QuizCore.renderQuiz({
