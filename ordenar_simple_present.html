@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ordenar Frases - Simple Present</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 48px;
+      font-family: Georgia, serif;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .container { width: 100%; max-width: 560px; animation: fadeIn 0.4s ease; }
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(129,140,248,0.35);
+      border-radius: 10px;
+      padding: 9px 18px;
+      color: #818cf8;
+      font-size: 14px;
+      font-family: Georgia, serif;
+      text-decoration: none;
+      margin-bottom: 20px;
+    }
+    .header { text-align: center; margin-bottom: 24px; }
+    .badge {
+      display: inline-block;
+      background: linear-gradient(90deg,#818cf8,#a78bfa);
+      color: #fff;
+      font-size: 11px;
+      font-family: monospace;
+      letter-spacing: 3px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    h1 { color: #f1f5f9; font-size: 30px; margin-bottom: 8px; letter-spacing: -1px; }
+    .subtitle { color: #94a3b8; font-size: 14px; font-style: italic; line-height: 1.5; }
+    .progress {
+      height: 4px;
+      background: #1e293b;
+      border-radius: 99px;
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg,#818cf8,#a78bfa);
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 28px;
+      backdrop-filter: blur(12px);
+    }
+    .counter { margin-bottom: 16px; }
+    .counter strong { color: #a78bfa; font-size: 28px; }
+    .counter span { color: #475569; font-size: 18px; }
+    .instruction { color: #cbd5e1; font-size: 15px; line-height: 1.6; margin-bottom: 18px; }
+    .translation {
+      color: #94a3b8;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+    .word-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 88px;
+      background: rgba(15,23,42,0.45);
+      border: 1.5px dashed rgba(129,140,248,0.35);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 18px;
+      touch-action: none;
+    }
+    .word {
+      user-select: none;
+      touch-action: none;
+      cursor: grab;
+      background: rgba(129,140,248,0.16);
+      border: 1.5px solid rgba(129,140,248,0.45);
+      color: #e0e7ff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 16px;
+      line-height: 1;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+      transition: transform 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .word:active { cursor: grabbing; }
+    .word.dragging {
+      opacity: 0.2;
+      transform: scale(0.96);
+    }
+    .ghost {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      background: linear-gradient(90deg,#818cf8,#a78bfa);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 16px;
+      line-height: 1;
+      box-shadow: 0 14px 35px rgba(0,0,0,0.35);
+      transform: translate(-50%, -50%);
+    }
+    .feedback {
+      min-height: 24px;
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .feedback.ok { color: #6ee7b7; }
+    .feedback.error { color: #fca5a5; }
+    .actions { display: flex; flex-direction: column; gap: 10px; }
+    button, .button-link {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(90deg,#818cf8,#a78bfa);
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: Georgia, serif;
+      text-align: center;
+      text-decoration: none;
+    }
+    .secondary {
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(129,140,248,0.35);
+      color: #cbd5e1;
+    }
+    .result { text-align: center; }
+    .result .emoji { font-size: 56px; margin-bottom: 12px; }
+    .result h2 { font-size: 26px; margin-bottom: 14px; }
+    .result p { color: #94a3b8; line-height: 1.6; margin-bottom: 22px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="exercicios_ordenar_frases.html" class="btn-back">VOLTAR</a>
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Simple Present</h1>
+      <p class="subtitle">Arraste as palavras com o dedo para formar a frase correta.</p>
+    </div>
+
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+    <div class="card" id="app"></div>
+  </div>
+
+  <script>
+    const exercises = [
+      { words: ["drink", "I", "water"], answer: ["I", "drink", "water"], translation: "Eu bebo água." },
+      { words: ["likes", "She", "music"], answer: ["She", "likes", "music"], translation: "Ela gosta de música." },
+      { words: ["play", "They", "soccer"], answer: ["They", "play", "soccer"], translation: "Eles jogam futebol." },
+      { words: ["works", "He", "at", "home"], answer: ["He", "works", "at", "home"], translation: "Ele trabalha em casa." },
+      { words: ["English", "We", "study"], answer: ["We", "study", "English"], translation: "Nós estudamos inglês." },
+      { words: ["does", "not", "coffee", "She", "drink"], answer: ["She", "does", "not", "drink", "coffee"], translation: "Ela não bebe café." },
+      { words: ["Do", "you", "like", "pizza"], answer: ["Do", "you", "like", "pizza"], translation: "Você gosta de pizza?" },
+      { words: ["goes", "He", "to", "school"], answer: ["He", "goes", "to", "school"], translation: "Ele vai para a escola." },
+      { words: ["They", "do", "not", "watch", "TV"], answer: ["They", "do", "not", "watch", "TV"], translation: "Eles não assistem TV." },
+      { words: ["Does", "she", "speak", "English"], answer: ["Does", "she", "speak", "English"], translation: "Ela fala inglês?" }
+    ];
+
+    let current = 0;
+    let score = 0;
+    let words = [];
+    let draggingIndex = null;
+    let ghost = null;
+
+    const app = document.getElementById("app");
+    const progressBar = document.getElementById("progressBar");
+
+    function updateProgress() {
+      progressBar.style.width = `${(current / exercises.length) * 100}%`;
+    }
+
+    function renderExercise() {
+      updateProgress();
+      const exercise = exercises[current];
+      words = [...exercise.words];
+
+      app.innerHTML = `
+        <div class="counter"><strong>${current + 1}</strong><span> / ${exercises.length}</span></div>
+        <p class="instruction">Organize as palavras abaixo para formar uma frase correta em inglês.</p>
+        <div class="translation">Tradução: ${exercise.translation}</div>
+        <div class="word-area" id="wordArea"></div>
+        <div class="feedback" id="feedback"></div>
+        <div class="actions">
+          <button onclick="checkAnswer()">Verificar</button>
+          <button class="secondary" onclick="resetCurrent()">Embaralhar novamente</button>
+        </div>
+      `;
+      renderWords();
+    }
+
+    function renderWords() {
+      const wordArea = document.getElementById("wordArea");
+      wordArea.innerHTML = "";
+      words.forEach((word, index) => {
+        const item = document.createElement("div");
+        item.className = "word";
+        item.textContent = word;
+        item.dataset.index = index;
+        item.addEventListener("pointerdown", startDrag);
+        wordArea.appendChild(item);
+      });
+    }
+
+    function startDrag(event) {
+      event.preventDefault();
+      const item = event.currentTarget;
+      draggingIndex = Number(item.dataset.index);
+      item.classList.add("dragging");
+      item.setPointerCapture(event.pointerId);
+
+      ghost = document.createElement("div");
+      ghost.className = "ghost";
+      ghost.textContent = item.textContent;
+      document.body.appendChild(ghost);
+      moveGhost(event.clientX, event.clientY);
+
+      item.addEventListener("pointermove", onDrag);
+      item.addEventListener("pointerup", endDrag);
+      item.addEventListener("pointercancel", endDrag);
+    }
+
+    function moveGhost(x, y) {
+      if (!ghost) return;
+      ghost.style.left = x + "px";
+      ghost.style.top = y + "px";
+    }
+
+    function onDrag(event) {
+      event.preventDefault();
+      moveGhost(event.clientX, event.clientY);
+
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const wordTarget = target && target.closest && target.closest(".word");
+      if (!wordTarget) return;
+
+      const targetIndex = Number(wordTarget.dataset.index);
+      if (targetIndex === draggingIndex || Number.isNaN(targetIndex)) return;
+
+      const [moved] = words.splice(draggingIndex, 1);
+      words.splice(targetIndex, 0, moved);
+      draggingIndex = targetIndex;
+      renderWords();
+      const newItem = document.querySelector(`.word[data-index="${draggingIndex}"]`);
+      if (newItem) newItem.classList.add("dragging");
+    }
+
+    function endDrag(event) {
+      const items = document.querySelectorAll(".word");
+      items.forEach(item => item.classList.remove("dragging"));
+      if (ghost) {
+        ghost.remove();
+        ghost = null;
+      }
+      draggingIndex = null;
+    }
+
+    function checkAnswer() {
+      const exercise = exercises[current];
+      const feedback = document.getElementById("feedback");
+      const userAnswer = words.join(" ");
+      const correctAnswer = exercise.answer.join(" ");
+
+      if (userAnswer === correctAnswer) {
+        score++;
+        feedback.className = "feedback ok";
+        feedback.textContent = "Correto!";
+        setTimeout(nextExercise, 650);
+      } else {
+        feedback.className = "feedback error";
+        feedback.textContent = "Ainda não. Tente reorganizar as palavras.";
+      }
+    }
+
+    function resetCurrent() {
+      words = [...exercises[current].words];
+      renderWords();
+      const feedback = document.getElementById("feedback");
+      feedback.className = "feedback";
+      feedback.textContent = "";
+    }
+
+    function nextExercise() {
+      current++;
+      if (current >= exercises.length) {
+        renderResult();
+      } else {
+        renderExercise();
+      }
+    }
+
+    function renderResult() {
+      progressBar.style.width = "100%";
+      app.innerHTML = `
+        <div class="result">
+          <div class="emoji">🏆</div>
+          <h2>Exercício concluído!</h2>
+          <p>Você acertou ${score} de ${exercises.length} frases.</p>
+          <div class="actions">
+            <button onclick="restart()">Tentar novamente</button>
+            <a class="button-link secondary" href="exercicios_ordenar_frases.html">Voltar aos exercícios</a>
+          </div>
+        </div>
+      `;
+    }
+
+    function restart() {
+      current = 0;
+      score = 0;
+      renderExercise();
+    }
+
+    renderExercise();
+  </script>
+</body>
+</html>
