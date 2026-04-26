@@ -2,235 +2,32 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>This / That / These / Those Quiz</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      min-height: 100vh;
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 32px 16px 48px;
-      font-family: Georgia, serif;
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-    .shake { animation: shake 0.4s ease; }
-    .option-btn { transition: transform 0.2s, border-color 0.2s !important; }
-    .option-btn:hover { transform: translateY(-2px); border-color: #818cf8 !important; }
-    .btn-primary:hover { opacity: 0.88 !important; transform: translateY(-1px); }
-    .btn-back {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255,255,255,0.05);
-      border: 1.5px solid rgba(129,140,248,0.35);
-      border-radius: 10px;
-      padding: 9px 18px;
-      color: #818cf8;
-      font-size: 14px;
-      font-family: Georgia, serif;
-      text-decoration: none;
-      transition: background 0.2s, border-color 0.2s, transform 0.2s;
-      cursor: pointer;
-    }
-    .btn-back:hover { background: rgba(129,140,248,0.12); border-color: #818cf8; transform: translateY(-1px); }
-    .fade-in { animation: fadeIn 0.3s ease; }
-  </style>
+  <script src="quiz_core.js"></script>
 </head>
 <body>
   <div id="root"></div>
-
-  <script type="text/babel">
-    const { useState, useEffect } = React;
-
-    const questions = [
-      {
-        question: "___ is my book. (O livro está perto de mim.)",
-        options: ["That", "This", "These", "Those"],
-        answer: "This",
-        explanation: "THIS é usado para objetos singulares que estão perto de quem fala."
-      },
-      {
-        question: "___ are my friends. (Os amigos estão perto de mim.)",
-        options: ["This", "That", "Those", "These"],
-        answer: "These",
-        explanation: "THESE é usado para objetos no plural que estão perto de quem fala."
-      },
-      {
-        question: "___ is a dog. (O cachorro está longe de mim.)",
-        options: ["This", "These", "That", "Those"],
-        answer: "That",
-        explanation: "THAT é usado para objetos singulares que estão longe de quem fala."
-      },
-      {
-        question: "___ are big houses. (As casas estão longe de mim.)",
-        options: ["This", "These", "That", "Those"],
-        answer: "Those",
-        explanation: "THOSE é usado para objetos no plural que estão longe de quem fala."
-      },
-      {
-        question: "Is ___ your pen? (A caneta está na sua mão.)",
-        options: ["those", "these", "that", "this"],
-        answer: "this",
-        explanation: "THIS é usado no singular para coisas próximas. 'Is this…?' é a forma interrogativa."
-      },
-      {
-        question: "Are ___ your shoes? (Os sapatos estão no chão, longe de nós.)",
-        options: ["this", "that", "these", "those"],
-        answer: "those",
-        explanation: "THOSE é usado no plural para coisas distantes. 'Are those…?' é a forma interrogativa."
-      },
-      {
-        question: "___ apple is red. (A maçã está na minha mão.)",
-        options: ["Those", "These", "That", "This"],
-        answer: "This",
-        explanation: "THIS qualifica um substantivo singular próximo: 'this apple'."
-      },
-      {
-        question: "___ boys are my brothers. (Os meninos estão do outro lado da rua.)",
-        options: ["This", "That", "These", "Those"],
-        answer: "Those",
-        explanation: "THOSE qualifica um substantivo plural distante: 'those boys'."
-      },
-      {
-        question: "What is ___? It is a cat. (O gato está aqui, perto de mim.)",
-        options: ["those", "these", "that", "this"],
-        answer: "this",
-        explanation: "THIS é usado para perguntar sobre algo singular e próximo: 'What is this?'"
-      },
-      {
-        question: "___ flowers are beautiful. (As flores estão na mesa aqui perto.)",
-        options: ["That", "This", "Those", "These"],
-        answer: "These",
-        explanation: "THESE qualifica um substantivo plural próximo: 'these flowers'."
-      }
-    ];
-
-    const TOTAL = questions.length;
-
-    function App() {
-      const [current, setCurrent] = useState(0);
-      const [selected, setSelected] = useState(null);
-      const [confirmed, setConfirmed] = useState(false);
-      const [score, setScore] = useState(0);
-      const [finished, setFinished] = useState(false);
-      const [shake, setShake] = useState(false);
-      const [progress, setProgress] = useState(0);
-
-      useEffect(() => { setProgress((current / TOTAL) * 100); }, [current]);
-
-      const handleSelect = (opt) => { if (!confirmed) setSelected(opt); };
-
-      const handleConfirm = () => {
-        if (!selected) { setShake(true); setTimeout(() => setShake(false), 500); return; }
-        setConfirmed(true);
-        if (selected === questions[current].answer) setScore(s => s + 1);
-      };
-
-      const handleNext = () => {
-        if (current + 1 >= TOTAL) { setFinished(true); setProgress(100); }
-        else { setCurrent(c => c + 1); setSelected(null); setConfirmed(false); }
-      };
-
-      const handleRestart = () => { setCurrent(0); setSelected(null); setConfirmed(false); setScore(0); setFinished(false); setProgress(0); };
-
-      const q = questions[current];
-      const isCorrect = selected === q?.answer;
-
-      const getFeedback = () => {
-        const pct = (score / TOTAL) * 100;
-        if (pct === 100) return { emoji: "🏆", msg: "Perfeito! Você domina o uso de This, That, These e Those!" };
-        if (pct >= 75)  return { emoji: "🌟", msg: "Ótimo trabalho! Continue praticando!" };
-        if (pct >= 50)  return { emoji: "📚", msg: "Bom esforço! Revise as regras e tente novamente." };
-        return { emoji: "💪", msg: "Continue praticando! Você vai melhorar!" };
-      };
-
-      const optionStyle = (opt) => {
-        const base = { background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "14px 18px", textAlign: "left", cursor: "pointer", color: "#cbd5e1", fontSize: 16, width: "100%", fontFamily: "Georgia, serif", marginBottom: 10 };
-        if (confirmed) {
-          if (opt === q.answer) return { ...base, background: "rgba(110,231,183,0.15)", border: "1.5px solid #6ee7b7", color: "#d1fae5", cursor: "default" };
-          if (opt === selected) return { ...base, background: "rgba(252,165,165,0.15)", border: "1.5px solid #fca5a5", color: "#fee2e2", cursor: "default" };
-          return { ...base, opacity: 0.35, cursor: "default" };
-        }
-        if (opt === selected) return { ...base, background: "rgba(129,140,248,0.15)", border: "1.5px solid #818cf8", color: "#e0e7ff" };
-        return base;
-      };
-
-      return (
-        <div style={{ width: "100%", maxWidth: 520 }}>
-          <div style={{ marginBottom: 20 }}>
-            <a href="index.html" className="btn-back">INÍCIO</a>
-          </div>
-          {/* Header */}
-          <div style={{ textAlign: "center", marginBottom: 24 }}>
-            <div style={{ display: "inline-block", background: "linear-gradient(90deg,#818cf8,#a78bfa)", color: "#fff", fontSize: 11, fontFamily: "monospace", letterSpacing: 3, padding: "4px 14px", borderRadius: 20, marginBottom: 12 }}>TEACHER FLÁVIO</div>
-            <h1 style={{ color: "#f1f5f9", fontSize: 28, marginBottom: 6, fontWeight: "bold", letterSpacing: -1 }}>This · That · These · Those</h1>
-          </div>
-
-          {/* Progress */}
-          <div style={{ height: 4, background: "#1e293b", borderRadius: 99, marginBottom: 28, overflow: "hidden" }}>
-            <div style={{ height: "100%", background: "linear-gradient(90deg,#818cf8,#a78bfa)", borderRadius: 99, width: `${progress}%`, transition: "width 0.5s ease" }} />
-          </div>
-
-          {!finished ? (
-            <div className={shake ? "shake" : ""} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "32px 28px", backdropFilter: "blur(12px)" }}>
-              <div style={{ marginBottom: 16 }}>
-                <span style={{ fontSize: 28, fontWeight: "bold", color: "#a78bfa" }}>{current + 1}</span>
-                <span style={{ fontSize: 18, color: "#475569" }}> / {TOTAL}</span>
-              </div>
-              <p style={{ color: "#f1f5f9", fontSize: 21, lineHeight: 1.5, marginBottom: 28, fontWeight: "bold" }}>{q.question}</p>
-
-              <div>{q.options.map(opt => (
-                <button key={opt} className="option-btn" style={optionStyle(opt)} onClick={() => handleSelect(opt)}>{opt}</button>
-              ))}</div>
-
-              {confirmed && (
-                <div className="fade-in" style={{ display: "flex", gap: 12, alignItems: "flex-start", background: isCorrect ? "rgba(110,231,183,0.07)" : "rgba(252,165,165,0.07)", border: `1px solid ${isCorrect ? "#6ee7b7" : "#fca5a5"}`, borderRadius: 12, padding: "14px 16px", marginBottom: 20 }}>
-                  <span style={{ fontSize: 18 }}>{isCorrect ? "✅" : "❌"}</span>
-                  <p style={{ margin: 0, color: "#e2e8f0", fontSize: 14, lineHeight: 1.6 }}>
-                    <strong>{isCorrect ? "Correto! " : `Errado. A resposta é "${q.answer}". `}</strong>{q.explanation}
-                  </p>
-                </div>
-              )}
-
-              <div style={{ marginBottom: 16 }}>
-                {!confirmed
-                  ? <button className="btn-primary" style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "linear-gradient(90deg,#818cf8,#a78bfa)", color: "#fff", fontSize: 16, fontWeight: "bold", cursor: "pointer", fontFamily: "Georgia, serif" }} onClick={handleConfirm}>Confirmar</button>
-                  : <button className="btn-primary" style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "linear-gradient(90deg,#818cf8,#a78bfa)", color: "#fff", fontSize: 16, fontWeight: "bold", cursor: "pointer", fontFamily: "Georgia, serif" }} onClick={handleNext}>{current + 1 >= TOTAL ? "Ver resultado →" : "Próxima →"}</button>
-                }
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                <span>⭐</span>
-                <span style={{ color: "#94a3b8", fontSize: 14 }}>{score} acerto{score !== 1 ? "s" : ""}</span>
-              </div>
-            </div>
-          ) : (
-            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "32px 28px", textAlign: "center" }}>
-              <div style={{ fontSize: 56, marginBottom: 12 }}>{getFeedback().emoji}</div>
-              <h2 style={{ color: "#f1f5f9", fontSize: 26, marginBottom: 20 }}>Quiz Concluído!</h2>
-              <div style={{ marginBottom: 16 }}>
-                <span style={{ fontSize: 52, fontWeight: "bold", color: "#a78bfa" }}>{score}</span>
-                <span style={{ fontSize: 28, color: "#475569" }}> / {TOTAL}</span>
-              </div>
-              <div style={{ height: 8, background: "#1e293b", borderRadius: 99, overflow: "hidden", marginBottom: 16 }}>
-                <div style={{ height: "100%", background: "linear-gradient(90deg,#818cf8,#a78bfa)", width: `${(score/TOTAL)*100}%`, borderRadius: 99 }} />
-              </div>
-              <p style={{ color: "#94a3b8", fontSize: 15, marginBottom: 28, lineHeight: 1.6 }}>{getFeedback().msg}</p>
-              <button className="btn-primary" style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "linear-gradient(90deg,#818cf8,#a78bfa)", color: "#fff", fontSize: 16, fontWeight: "bold", cursor: "pointer", fontFamily: "Georgia, serif" }} onClick={handleRestart}>Tentar novamente</button>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  <script>
+    QuizCore.renderQuiz({
+      title: "This · That · These · Those",
+      smallTitle: true,
+      feedbackPerfect: "Perfeito! Você domina o uso de This, That, These e Those!",
+      questions: [
+        { question: "___ is my book. (O livro está perto de mim.)", options: ["That", "This", "These", "Those"], answer: "This", explanation: "THIS é usado para objetos singulares que estão perto de quem fala." },
+        { question: "___ are my friends. (Os amigos estão perto de mim.)", options: ["This", "That", "Those", "These"], answer: "These", explanation: "THESE é usado para objetos no plural que estão perto de quem fala." },
+        { question: "___ is a dog. (O cachorro está longe de mim.)", options: ["This", "These", "That", "Those"], answer: "That", explanation: "THAT é usado para objetos singulares que estão longe de quem fala." },
+        { question: "___ are big houses. (As casas estão longe de mim.)", options: ["This", "These", "That", "Those"], answer: "Those", explanation: "THOSE é usado para objetos no plural que estão longe de quem fala." },
+        { question: "Is ___ your pen? (A caneta está na sua mão.)", options: ["those", "these", "that", "this"], answer: "this", explanation: "THIS é usado no singular para coisas próximas. 'Is this…?' é a forma interrogativa." },
+        { question: "Are ___ your shoes? (Os sapatos estão no chão, longe de nós.)", options: ["this", "that", "these", "those"], answer: "those", explanation: "THOSE é usado no plural para coisas distantes." },
+        { question: "___ apple is red. (A maçã está na minha mão.)", options: ["Those", "These", "That", "This"], answer: "This", explanation: "THIS qualifica um substantivo singular próximo: 'this apple'." },
+        { question: "___ boys are my brothers. (Os meninos estão do outro lado da rua.)", options: ["This", "That", "These", "Those"], answer: "Those", explanation: "THOSE qualifica um substantivo plural distante: 'those boys'." },
+        { question: "What is ___? It is a cat. (O gato está aqui, perto de mim.)", options: ["those", "these", "that", "this"], answer: "this", explanation: "THIS é usado para perguntar sobre algo singular e próximo: 'What is this?'" },
+        { question: "___ flowers are beautiful. (As flores estão na mesa aqui perto.)", options: ["That", "This", "Those", "These"], answer: "These", explanation: "THESE qualifica um substantivo plural próximo: 'these flowers'." }
+      ]
+    });
   </script>
 </body>
 </html>
