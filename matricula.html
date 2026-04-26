@@ -54,6 +54,16 @@
       margin-bottom: 12px;
     }
     input:focus { outline: none; border-color: #818cf8; }
+    .field-note {
+      color: #cbd5e1;
+      background: rgba(129,140,248,0.08);
+      border: 1px solid rgba(129,140,248,0.22);
+      border-radius: 12px;
+      padding: 11px 13px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: -2px 0 12px;
+    }
     .password-field { position: relative; }
     .password-field input { padding-right: 112px; }
     .toggle-password {
@@ -130,6 +140,10 @@
       <input id="cpf" type="text" placeholder="CPF" inputmode="numeric" maxlength="14" required />
       <input id="email" type="email" placeholder="Email" required />
       <input id="whatsapp" type="tel" placeholder="WhatsApp" inputmode="tel" required />
+      <input id="pixKey" type="text" placeholder="Chave PIX" required />
+      <div class="field-note">
+        A chave PIX é importante para situações em que o professor precise fazer reembolso de algum valor para o aluno.
+      </div>
       <div class="password-field">
         <input id="password" type="password" placeholder="Senha" minlength="6" required />
         <button type="button" class="toggle-password" data-target="password">MOSTRAR</button>
@@ -196,6 +210,7 @@
           cpf: document.getElementById("cpf").value.trim(),
           email: document.getElementById("email").value.trim(),
           whatsapp: document.getElementById("whatsapp").value.trim(),
+          pix_key: document.getElementById("pixKey").value.trim(),
           password: document.getElementById("password").value
         });
 
