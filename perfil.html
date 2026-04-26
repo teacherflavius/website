@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meu Perfil - Teacher Flávio</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js"></script>
+  <script src="auth.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); padding: 32px 16px 48px; font-family: Georgia, serif; color: #f1f5f9; }
+    .container { width: 100%; max-width: 920px; margin: 0 auto; }
+    .top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(129,140,248,0.35); border-radius: 10px; padding: 10px 18px; color: #818cf8; font-size: 14px; font-family: Georgia, serif; text-decoration: none; cursor: pointer; }
+    .header { text-align: center; margin-bottom: 28px; }
+    .badge { display: inline-block; background: linear-gradient(90deg,#818cf8,#a78bfa); color:#fff; font-size:11px; font-family:monospace; letter-spacing:3px; padding:4px 14px; border-radius:20px; margin-bottom:12px; }
+    h1 { font-size: 34px; margin-bottom: 8px; }
+    p { color: #94a3b8; line-height: 1.6; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+    .stat, .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 18px; }
+    .stat strong { display: block; font-size: 28px; color: #a78bfa; margin-bottom: 4px; }
+    .stat span { color: #94a3b8; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 14px; }
+    th { color: #a78bfa; font-family: monospace; letter-spacing: 1px; font-size: 12px; text-transform: uppercase; }
+    td { color: #e2e8f0; }
+    .table-wrap { overflow-x: auto; }
+    .empty { text-align: center; color: #94a3b8; padding: 32px 12px; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <a class="btn" href="index.html">INÍCIO</a>
+      <button class="btn" onclick="Auth.signOut()">SAIR</button>
+    </div>
+
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Meu Perfil</h1>
+      <p id="studentInfo">Carregando seus dados...</p>
+    </div>
+
+    <div class="grid">
+      <div class="stat"><strong id="totalActivities">0</strong><span>Atividades feitas</span></div>
+      <div class="stat"><strong id="averageScore">0%</strong><span>Média geral</span></div>
+      <div class="stat"><strong id="bestScore">0%</strong><span>Melhor desempenho</span></div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap" id="history"></div>
+    </div>
+  </div>
+
+  <script>
+    function formatDate(value) {
+      try { return new Date(value).toLocaleString("pt-BR"); }
+      catch (_) { return value || ""; }
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"]/g, function (char) {
+        return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[char];
+      });
+    }
+
+    async function init() {
+      const user = await Auth.requireAuth();
+      if (!user) return;
+
+      const profile = await Auth.getProfile();
+      document.getElementById("studentInfo").textContent = `${profile.name || "Aluno"} · ${profile.email || user.email}`;
+
+      const results = await Auth.getMyResults();
+      document.getElementById("totalActivities").textContent = results.length;
+
+      if (results.length) {
+        const avg = Math.round(results.reduce((sum, item) => sum + Number(item.percentage || 0), 0) / results.length);
+        const best = Math.max(...results.map(item => Number(item.percentage || 0)));
+        document.getElementById("averageScore").textContent = avg + "%";
+        document.getElementById("bestScore").textContent = best + "%";
+      }
+
+      const history = document.getElementById("history");
+      if (!results.length) {
+        history.innerHTML = '<div class="empty">Você ainda não concluiu nenhuma atividade.</div>';
+        return;
+      }
+
+      history.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Atividade</th>
+              <th>Tipo</th>
+              <th>Acertos</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${results.map(item => `
+              <tr>
+                <td>${formatDate(item.completed_at)}</td>
+                <td>${escapeHtml(item.activity_title)}</td>
+                <td>${escapeHtml(item.activity_type)}</td>
+                <td>${item.score}/${item.total}</td>
+                <td>${item.percentage}%</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    init();
+  </script>
+</body>
+</html>
