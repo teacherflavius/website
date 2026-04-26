@@ -70,12 +70,12 @@
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button protected-link" href="#" data-target="#">
+      <a class="menu-button" href="https://canva.link/guiadoestudante" target="_blank" rel="noopener noreferrer">
         <span><span class="icon">📘</span>GUIA DO ESTUDANTE</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button protected-link" href="https://drive.google.com/drive/folders/1VHsskjvP7s4gw94PqNRCTpaL-xC0vmjg" data-target="https://drive.google.com/drive/folders/1VHsskjvP7s4gw94PqNRCTpaL-xC0vmjg" data-external="true">
+      <a class="menu-button" href="https://drive.google.com/drive/folders/1VHsskjvP7s4gw94PqNRCTpaL-xC0vmjg" target="_blank" rel="noopener noreferrer">
         <span><span class="icon">🎥</span>AULAS GRAVADAS</span>
         <span class="arrow">›</span>
       </a>
@@ -122,7 +122,6 @@
       link.addEventListener("click", async function (event) {
         event.preventDefault();
         const target = link.dataset.target || link.getAttribute("href") || "#";
-        const isExternal = link.dataset.external === "true";
 
         if (!currentSession) {
           currentSession = await Auth.getSession();
@@ -134,11 +133,7 @@
         }
 
         if (target && target !== "#") {
-          if (isExternal) {
-            window.open(target, "_blank", "noopener,noreferrer");
-          } else {
-            window.location.href = target;
-          }
+          window.location.href = target;
         }
       });
     });
