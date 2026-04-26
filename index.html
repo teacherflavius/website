@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Teacher Flávio</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js"></script>
+  <script src="auth.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -115,6 +118,10 @@
       transform: translateX(4px);
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     @media (min-width: 680px) {
       .menu-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -129,7 +136,7 @@
     <div class="divider"></div>
 
     <div class="menu-grid">
-      <a class="menu-button enrollment" href="matricula.html">
+      <a id="enrollmentCard" class="menu-button enrollment" href="matricula.html">
         <span><span class="icon">🪪</span>MATRÍCULA</span>
         <span class="arrow">›</span>
       </a>
@@ -155,5 +162,26 @@
       </a>
     </div>
   </div>
+
+  <script>
+    async function updateEnrollmentCardVisibility() {
+      const enrollmentCard = document.getElementById("enrollmentCard");
+
+      if (!enrollmentCard || !window.Auth || !Auth.isConfigured()) {
+        return;
+      }
+
+      try {
+        const session = await Auth.getSession();
+        if (session && session.user) {
+          enrollmentCard.classList.add("hidden");
+        }
+      } catch (error) {
+        enrollmentCard.classList.remove("hidden");
+      }
+    }
+
+    updateEnrollmentCardVisibility();
+  </script>
 </body>
 </html>
