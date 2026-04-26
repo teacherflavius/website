@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Teacher Flávio - Exercícios de Inglês</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px 48px;
+      font-family: Georgia, serif;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      animation: fadeInUp 0.5s ease;
+    }
+
+    .top-links {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .top-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(129,140,248,0.35);
+      border-radius: 10px;
+      padding: 9px 16px;
+      color: #818cf8;
+      font-size: 13px;
+      font-family: Georgia, serif;
+      text-decoration: none;
+    }
+
+    .badge {
+      display: inline-block;
+      background: linear-gradient(90deg, #818cf8, #a78bfa);
+      color: #fff;
+      font-size: 11px;
+      font-family: monospace;
+      letter-spacing: 3px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .header h1 {
+      color: #f1f5f9;
+      font-size: 34px;
+      font-weight: bold;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: #94a3b8;
+      font-size: 15px;
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(129,140,248,0.3), transparent);
+      margin-bottom: 36px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      text-decoration: none;
+      transition: transform 0.2s, border-color 0.2s, background 0.2s;
+      backdrop-filter: blur(12px);
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(129,140,248,0.5);
+      background: rgba(129,140,248,0.07);
+    }
+    .card:active { transform: translateY(0px); }
+
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+
+    .card-body { flex: 1; }
+    .card-title {
+      color: #f1f5f9;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      color: #94a3b8;
+      font-size: 13px;
+      font-style: italic;
+      line-height: 1.5;
+    }
+    .card-tag {
+      display: inline-block;
+      background: rgba(129,140,248,0.15);
+      border: 1px solid rgba(129,140,248,0.3);
+      color: #a78bfa;
+      font-size: 11px;
+      font-family: monospace;
+      letter-spacing: 1px;
+      padding: 2px 10px;
+      border-radius: 20px;
+      margin-top: 8px;
+    }
+
+    .card-arrow {
+      color: #475569;
+      font-size: 22px;
+      transition: color 0.2s, transform 0.2s;
+    }
+    .card:hover .card-arrow {
+      color: #818cf8;
+      transform: translateX(4px);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-links">
+      <a class="top-link" href="index.html">INÍCIO</a>
+      <a class="top-link" href="login.html">ENTRAR</a>
+      <a class="top-link" href="cadastro.html">CRIAR CONTA</a>
+      <a class="top-link" href="perfil.html">MEU PERFIL</a>
+    </div>
+
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Atividades de Inglês</h1>
+      <p>Escolha o tipo de atividade que deseja praticar.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <a class="card" href="quizzes.html">
+      <div class="card-icon">✅</div>
+      <div class="card-body">
+        <div class="card-title">QUIZZES</div>
+        <div class="card-desc">Responda perguntas de múltipla escolha sobre gramática inglesa.</div>
+        <span class="card-tag">GRAMÁTICA</span>
+      </div>
+      <div class="card-arrow">›</div>
+    </a>
+
+    <a class="card" href="exercicios_ordenar_frases.html">
+      <div class="card-icon">🧩</div>
+      <div class="card-body">
+        <div class="card-title">ORDENAR FRASES</div>
+        <div class="card-desc">Organize palavras para formar frases corretas em inglês.</div>
+        <span class="card-tag">WORD ORDER</span>
+      </div>
+      <div class="card-arrow">›</div>
+    </a>
+  </div>
+</body>
+</html>
