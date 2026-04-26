@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Teacher Flávio</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js"></script>
-  <script src="auth.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -60,13 +57,6 @@
       color: #94a3b8;
       font-size: 15px;
       font-style: italic;
-      line-height: 1.5;
-    }
-
-    .status {
-      margin-top: 12px;
-      color: #cbd5e1;
-      font-size: 13px;
       line-height: 1.5;
     }
 
@@ -145,9 +135,7 @@
     }
 
     @media (min-width: 680px) {
-      .menu-grid {
-        grid-template-columns: 1fr 1fr;
-      }
+      .menu-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -155,9 +143,8 @@
   <div class="container">
     <div class="header">
       <div><span class="badge">TEACHER FLÁVIO</span></div>
-      <h1>Área do Estudante</h1>
-      <p>Escolha uma seção para acessar seus estudos, aulas e materiais.</p>
-      <div id="loginStatus" class="status">Verificando acesso...</div>
+      <h1>Teacher Flávio</h1>
+      <p>Acesse aulas, materiais públicos e a área exclusiva do estudante.</p>
     </div>
 
     <div class="divider"></div>
@@ -168,92 +155,31 @@
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button protected-link" href="#" data-target="#">
-        <span><span class="icon">🗺️</span>ROTEIRO DE ESTUDOS</span>
+      <a class="menu-button" href="area_do_estudante.html">
+        <span><span class="icon">🎓</span>ÁREA DO ESTUDANTE</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button protected-link" href="#" data-target="#">
+      <a class="menu-button" href="#">
         <span><span class="icon">▶️</span>YOUTUBE</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button protected-link" href="exercicios.html" data-target="exercicios.html">
-        <span><span class="icon">🧩</span>EXERCÍCIOS</span>
-        <span class="arrow">›</span>
-      </a>
-
-      <a class="menu-button protected-link" href="#" data-target="#">
-        <span><span class="icon">🔗</span>LINKS DAS AULAS</span>
-        <span class="arrow">›</span>
-      </a>
-
-      <a class="menu-button protected-link" href="#" data-target="#">
+      <a class="menu-button" href="#">
         <span><span class="icon">📚</span>AULAS DE GRAMÁTICA</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button protected-link" href="#" data-target="#">
+      <a class="menu-button" href="#">
         <span><span class="icon">🎥</span>AULAS GRAVADAS</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button protected-link" href="#" data-target="#">
-        <span><span class="icon">📘</span>GUIA DO ESTUDANTE</span>
-        <span class="arrow">›</span>
-      </a>
-
-      <a class="menu-button protected-link" href="#" data-target="#">
+      <a class="menu-button" href="#">
         <span><span class="icon">📸</span>INSTAGRAM</span>
         <span class="arrow">›</span>
       </a>
     </div>
   </div>
-
-  <script>
-    let currentSession = null;
-
-    async function updateStatus() {
-      const status = document.getElementById("loginStatus");
-      if (!Auth.isConfigured()) {
-        Auth.showConfigWarning();
-        status.textContent = "Supabase ainda não configurado.";
-        return;
-      }
-
-      currentSession = await Auth.getSession();
-      if (currentSession && currentSession.user) {
-        const profile = await Auth.getProfile();
-        status.textContent = `Logado como ${profile && profile.name ? profile.name : currentSession.user.email}.`;
-      } else {
-        status.textContent = "Faça sua matrícula ou entre para acessar as seções.";
-      }
-    }
-
-    document.querySelectorAll(".protected-link").forEach(function (link) {
-      link.addEventListener("click", async function (event) {
-        event.preventDefault();
-        const target = link.dataset.target || link.getAttribute("href") || "#";
-
-        if (!Auth.isConfigured()) {
-          Auth.showConfigWarning();
-          return;
-        }
-
-        const session = currentSession || await Auth.getSession();
-        if (!session) {
-          const next = target && target !== "#" ? target : "index.html";
-          window.location.href = "login.html?next=" + encodeURIComponent(next);
-          return;
-        }
-
-        if (target && target !== "#") {
-          window.location.href = target;
-        }
-      });
-    });
-
-    updateStatus();
-  </script>
 </body>
 </html>
