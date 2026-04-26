@@ -42,6 +42,15 @@
     results.push(completeResult);
     writeJson(RESULTS_KEY, results);
 
+    if (window.SupabaseResults && typeof window.SupabaseResults.save === "function") {
+      window.SupabaseResults.save({
+        activity_type: result.activity_type || "quiz",
+        activity_title: result.quiz,
+        score: result.score,
+        total: result.total
+      });
+    }
+
     if (window.QUIZ_RESULTS_ENDPOINT) {
       fetch(window.QUIZ_RESULTS_ENDPOINT, {
         method: "POST",
@@ -202,7 +211,7 @@
 
       useEffect(function () {
         if (finished && !saved && student) {
-          saveResult({ name: student.name, email: student.email, quiz: config.title, score: score, total: total });
+          saveResult({ name: student.name, email: student.email, quiz: config.title, score: score, total: total, activity_type: "quiz" });
           setSaved(true);
         }
       }, [finished, saved, student, score]);
