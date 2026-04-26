@@ -4,9 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Ordenar Frases - Simple Present</title>
-  <script>
-    window.QUIZ_RESULTS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyr53U30DMi3Shft8V2fLfQI0qDrQ1CrMB6XTwhEAy2I16jPI4m7fpFCiul9Dw2jpEL/exec";
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase_config.js"></script>
   <script src="auth.js"></script>
@@ -14,8 +11,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="quiz_core.js"></script>
-  <script src="word_order_tracking.js"></script>
-  <script src="word_order_supabase_save.js"></script>
   <script src="notify_teacher.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -122,10 +117,7 @@
       transition: transform 0.15s, background 0.15s, border-color 0.15s;
     }
     .word:active { cursor: grabbing; }
-    .word.dragging {
-      opacity: 0.25;
-      transform: scale(0.96);
-    }
+    .word.dragging { opacity: 0.25; transform: scale(0.96); }
     .ghost {
       position: fixed;
       z-index: 9999;
@@ -171,7 +163,9 @@
     .result { text-align: center; }
     .result .emoji { font-size: 56px; margin-bottom: 12px; }
     .result h2 { font-size: 26px; margin-bottom: 14px; }
-    .result p { color: #94a3b8; line-height: 1.6; margin-bottom: 22px; }
+    .result p { color: #94a3b8; line-height: 1.6; margin-bottom: 16px; }
+    .save-message { color: #6ee7b7 !important; font-size: 13px; margin-bottom: 22px !important; }
+    .save-message.error { color: #fca5a5 !important; }
   </style>
 </head>
 <body>
@@ -189,6 +183,7 @@
   </div>
 
   <script>
+    const EXERCISE_TITLE = "Ordenar Frases - Simple Present";
     const exercises = [
       { words: ["drink", "I", "water"], answer: ["I", "drink", "water"], translation: "Eu bebo água." },
       { words: ["likes", "She", "music"], answer: ["She", "likes", "music"], translation: "Ela gosta de música." },
@@ -208,9 +203,32 @@
     let draggingElement = null;
     let ghost = null;
     let activePointerId = null;
+    let resultSaved = false;
 
     const app = document.getElementById("app");
     const progressBar = document.getElementById("progressBar");
+
+    async function requireLoggedStudent() {
+      if (!window.Auth || !Auth.isConfigured || !Auth.isConfigured()) {
+        if (window.Auth && Auth.showConfigWarning) Auth.showConfigWarning();
+        return true;
+      }
+
+      const user = await Auth.requireAuth();
+      if (!user) return false;
+
+      const profile = await Auth.getProfile();
+      const student = {
+        name: profile && profile.name ? profile.name : "Aluno",
+        email: profile && profile.email ? profile.email : user.email
+      };
+
+      if (window.QuizCore && QuizCore.setCurrentStudent) {
+        QuizCore.setCurrentStudent(student);
+      }
+
+      return true;
+    }
 
     function updateProgress() {
       progressBar.style.width = `${(current / exercises.length) * 100}%`;
@@ -357,6 +375,46 @@
       }
     }
 
+    async function saveWordOrderResult() {
+      if (resultSaved) return;
+      resultSaved = true;
+
+      const student = window.QuizCore && QuizCore.getCurrentStudent ? QuizCore.getCurrentStudent() : null;
+      const fallbackStudent = student || { name: "Aluno", email: "" };
+      const status = document.getElementById("saveStatus");
+
+      try {
+        if (window.QuizCore && QuizCore.saveResult) {
+          await QuizCore.saveResult({
+            name: fallbackStudent.name,
+            email: fallbackStudent.email,
+            quiz: EXERCISE_TITLE,
+            score: score,
+            total: exercises.length,
+            activity_type: "word_order"
+          });
+        } else if (window.Auth && Auth.saveActivityResult) {
+          await Auth.saveActivityResult({
+            activity_type: "word_order",
+            activity_title: EXERCISE_TITLE,
+            score: score,
+            total: exercises.length
+          });
+        }
+
+        if (status) {
+          status.className = "save-message";
+          status.textContent = "Resultado enviado ao Supabase.";
+        }
+      } catch (error) {
+        console.warn("Erro ao salvar exercício no Supabase:", error);
+        if (status) {
+          status.className = "save-message error";
+          status.textContent = "Não foi possível enviar o resultado ao Supabase.";
+        }
+      }
+    }
+
     function renderResult() {
       cleanupDrag();
       progressBar.style.width = "100%";
@@ -365,25 +423,34 @@
           <div class="emoji">🏆</div>
           <h2>Exercício concluído!</h2>
           <p>Você acertou ${score} de ${exercises.length} frases.</p>
+          <p id="saveStatus" class="save-message">Enviando resultado ao Supabase...</p>
           <div class="actions">
             <button onclick="restart()">Tentar novamente</button>
             <a class="button-link secondary" href="exercicios_ordenar_frases.html">Voltar aos exercícios</a>
           </div>
         </div>
       `;
+      saveWordOrderResult();
     }
 
     function restart() {
       cleanupDrag();
       current = 0;
       score = 0;
+      resultSaved = false;
       renderExercise();
+    }
+
+    async function start() {
+      app.innerHTML = '<p style="color:#94a3b8;text-align:center;line-height:1.6;">Carregando exercício...</p>';
+      const allowed = await requireLoggedStudent();
+      if (allowed) renderExercise();
     }
 
     window.addEventListener("blur", cleanupDrag);
     window.addEventListener("pagehide", cleanupDrag);
 
-    renderExercise();
+    start();
   </script>
 </body>
 </html>
