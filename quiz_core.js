@@ -224,12 +224,6 @@
         setCurrent(0); setSelected(null); setConfirmed(false); setScore(0); setFinished(false); setSaved(false);
       }
 
-      function switchStudent() {
-        clearCurrentStudent();
-        setStudent(null);
-        restart();
-      }
-
       function feedback() {
         const pct = (score / total) * 100;
         if (pct === 100) return { emoji: "🏆", msg: config.feedbackPerfect || "Perfeito!" };
@@ -239,9 +233,8 @@
       }
 
       return e("div", { style: { width: "100%", maxWidth: 520 } },
-        e("div", { style: { marginBottom: 20, display: "flex", justifyContent: "space-between", gap: 10 } },
-          e("a", { href: "index.html", className: "btn-back" }, "INÍCIO"),
-          e("button", { className: "btn-back", onClick: switchStudent }, "TROCAR ALUNO")
+        e("div", { style: { marginBottom: 20 } },
+          e("a", { href: "index.html", className: "btn-back" }, "INÍCIO")
         ),
         e(Header, { title: config.title, subtitle: config.subtitle, small: config.smallTitle }),
         e("div", { style: { height: 4, background: "#1e293b", borderRadius: 99, marginBottom: 28, overflow: "hidden" } },
