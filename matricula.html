@@ -9,121 +9,36 @@
   <script src="auth.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      min-height: 100vh;
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 16px;
-      font-family: Georgia, serif;
-      color: #f1f5f9;
-    }
-    .box {
-      width: 100%;
-      max-width: 480px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 28px;
-      backdrop-filter: blur(12px);
-    }
+    body { min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); display: flex; align-items: center; justify-content: center; padding: 32px 16px; font-family: Georgia, serif; color: #f1f5f9; }
+    .box { width: 100%; max-width: 760px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 28px; backdrop-filter: blur(12px); }
     .header { text-align: center; margin-bottom: 24px; }
-    .badge {
-      display: inline-block;
-      background: linear-gradient(90deg,#818cf8,#a78bfa);
-      color: #fff;
-      font-size: 11px;
-      font-family: monospace;
-      letter-spacing: 3px;
-      padding: 4px 14px;
-      border-radius: 20px;
-      margin-bottom: 12px;
-    }
+    .badge { display: inline-block; background: linear-gradient(90deg,#818cf8,#a78bfa); color: #fff; font-size: 11px; font-family: monospace; letter-spacing: 3px; padding: 4px 14px; border-radius: 20px; margin-bottom: 12px; }
     h1 { font-size: 32px; margin-bottom: 8px; }
     p { color: #94a3b8; font-size: 14px; line-height: 1.6; }
-    input {
-      width: 100%;
-      background: rgba(255,255,255,0.06);
-      border: 1.5px solid rgba(255,255,255,0.12);
-      border-radius: 12px;
-      padding: 13px 14px;
-      color: #f1f5f9;
-      font-size: 15px;
-      font-family: Georgia, serif;
-      margin-bottom: 12px;
-    }
+    input { width: 100%; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 13px 14px; color: #f1f5f9; font-size: 15px; font-family: Georgia, serif; margin-bottom: 12px; }
     input:focus { outline: none; border-color: #818cf8; }
-    .field-note {
-      color: #cbd5e1;
-      background: rgba(129,140,248,0.08);
-      border: 1px solid rgba(129,140,248,0.22);
-      border-radius: 12px;
-      padding: 11px 13px;
-      font-size: 13px;
-      line-height: 1.5;
-      margin: -2px 0 12px;
-    }
+    .field-note { color: #cbd5e1; background: rgba(129,140,248,0.08); border: 1px solid rgba(129,140,248,0.22); border-radius: 12px; padding: 11px 13px; font-size: 13px; line-height: 1.5; margin: -2px 0 12px; }
     .password-field { position: relative; }
     .password-field input { padding-right: 112px; }
-    .toggle-password {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: auto;
-      margin: 0;
-      padding: 7px 10px;
-      border-radius: 9px;
-      border: 1px solid rgba(129,140,248,0.35);
-      background: rgba(255,255,255,0.05);
-      color: #cbd5e1;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-      font-family: Georgia, serif;
-    }
-    button, a.btn {
-      width: 100%;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      background: linear-gradient(90deg,#818cf8,#a78bfa);
-      color: #fff;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      font-family: Georgia, serif;
-      text-decoration: none;
-      margin-top: 6px;
-    }
-    .secondary {
-      background: rgba(255,255,255,0.05) !important;
-      border: 1.5px solid rgba(129,140,248,0.35) !important;
-      color: #cbd5e1 !important;
-    }
+    .toggle-password { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: auto; margin: 0; padding: 7px 10px; border-radius: 9px; border: 1px solid rgba(129,140,248,0.35); background: rgba(255,255,255,0.05); color: #cbd5e1; font-size: 12px; font-weight: bold; cursor: pointer; font-family: Georgia, serif; }
+    .availability-block { margin: 18px 0 18px; }
+    .availability-title { color: #f1f5f9; font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .availability-help { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 14px; }
+    .availability-scroll { overflow-x: auto; padding-bottom: 4px; }
+    .availability-grid { min-width: 650px; display: grid; grid-template-columns: 110px repeat(5, 1fr); gap: 10px; align-items: center; }
+    .grid-head { color: #cbd5e1; text-align: center; font-size: 14px; font-weight: bold; white-space: nowrap; }
+    .time-label { color: #f1f5f9; font-size: 14px; white-space: nowrap; }
+    .slot { display: flex; justify-content: center; align-items: center; min-height: 42px; }
+    .slot input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+    .slot-box { width: 30px; height: 30px; border: 3px solid rgba(203,213,225,0.55); border-radius: 7px; background: rgba(255,255,255,0.04); display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s ease; cursor: pointer; }
+    .slot input:checked + .slot-box { background: linear-gradient(135deg,#818cf8,#a78bfa); border-color: #c4b5fd; box-shadow: 0 0 0 4px rgba(129,140,248,0.16); }
+    .slot input:checked + .slot-box::after { content: "✓"; color: #fff; font-size: 18px; font-weight: bold; }
+    button, a.btn { width: 100%; display: inline-flex; justify-content: center; align-items: center; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(90deg,#818cf8,#a78bfa); color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; font-family: Georgia, serif; text-decoration: none; margin-top: 6px; }
+    .secondary { background: rgba(255,255,255,0.05) !important; border: 1.5px solid rgba(129,140,248,0.35) !important; color: #cbd5e1 !important; }
     .error { min-height: 20px; color: #fca5a5; font-size: 13px; margin: 8px 0; line-height: 1.5; }
     .success { color: #6ee7b7; font-size: 13px; line-height: 1.5; margin: 8px 0; }
-    .code-box {
-      display: none;
-      text-align: center;
-      background: rgba(110,231,183,0.08);
-      border: 1px solid rgba(110,231,183,0.35);
-      border-radius: 16px;
-      padding: 18px;
-      margin: 16px 0;
-    }
-    .code-box strong {
-      display: block;
-      color: #6ee7b7;
-      font-size: 34px;
-      font-family: monospace;
-      letter-spacing: 4px;
-      margin-top: 8px;
-    }
+    .code-box { display: none; text-align: center; background: rgba(110,231,183,0.08); border: 1px solid rgba(110,231,183,0.35); border-radius: 16px; padding: 18px; margin: 16px 0; }
+    .code-box strong { display: block; color: #6ee7b7; font-size: 34px; font-family: monospace; letter-spacing: 4px; margin-top: 8px; }
     .links { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
   </style>
 </head>
@@ -141,9 +56,16 @@
       <input id="email" type="email" placeholder="Email" required />
       <input id="whatsapp" type="tel" placeholder="WhatsApp" inputmode="tel" required />
       <input id="pixKey" type="text" placeholder="Chave PIX" required />
-      <div class="field-note">
-        A chave PIX é importante para situações em que o professor precise fazer reembolso de algum valor para o aluno.
+      <div class="field-note">A chave PIX é importante para situações em que o professor precise fazer reembolso de algum valor para o aluno.</div>
+
+      <div class="availability-block">
+        <div class="availability-title">Disponibilidade para aulas</div>
+        <p class="availability-help">Marque todos os dias e horários, de segunda a sexta, em que você estará disponível para fazer aulas de inglês. Você pode selecionar vários horários.</p>
+        <div class="availability-scroll">
+          <div class="availability-grid" id="availabilityGrid"></div>
+        </div>
       </div>
+
       <div class="password-field">
         <input id="password" type="password" placeholder="Senha" minlength="6" required />
         <button type="button" class="toggle-password" data-target="password">MOSTRAR</button>
@@ -164,21 +86,60 @@
   </div>
 
   <script>
-    function onlyDigits(value) {
-      return String(value || "").replace(/\D/g, "");
-    }
+    const availabilityDays = [
+      { key: "seg", label: "Segunda" },
+      { key: "ter", label: "Terça" },
+      { key: "qua", label: "Quarta" },
+      { key: "qui", label: "Quinta" },
+      { key: "sex", label: "Sexta" }
+    ];
+
+    const availabilityHours = [
+      { key: "09", label: "9h - 10h" },
+      { key: "10", label: "10h - 11h" },
+      { key: "12", label: "12h - 13h" },
+      { key: "13", label: "13h - 14h" },
+      { key: "15", label: "15h - 16h" },
+      { key: "17", label: "17h - 18h" },
+      { key: "18", label: "18h - 19h" },
+      { key: "20", label: "20h - 21h" },
+      { key: "21", label: "21h - 22h" }
+    ];
+
+    function onlyDigits(value) { return String(value || "").replace(/\D/g, ""); }
 
     function formatCpf(value) {
       const digits = onlyDigits(value).slice(0, 11);
-      return digits
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+      return digits.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
     }
 
-    document.getElementById("cpf").addEventListener("input", function () {
-      this.value = formatCpf(this.value);
-    });
+    function buildAvailabilityGrid() {
+      const grid = document.getElementById("availabilityGrid");
+      grid.innerHTML = '<div></div>' + availabilityDays.map(day => `<div class="grid-head">${day.label}</div>`).join("");
+
+      availabilityHours.forEach(hour => {
+        grid.insertAdjacentHTML("beforeend", `<div class="time-label">${hour.label}</div>`);
+        availabilityDays.forEach(day => {
+          const id = `availability_${day.key}_${hour.key}`;
+          grid.insertAdjacentHTML("beforeend", `
+            <label class="slot" for="${id}" title="${day.label}, ${hour.label}">
+              <input type="checkbox" id="${id}" name="availability" data-day="${day.key}" data-hour="${hour.key}" />
+              <span class="slot-box"></span>
+            </label>
+          `);
+        });
+      });
+    }
+
+    function getAvailability() {
+      const availability = { seg: [], ter: [], qua: [], qui: [], sex: [] };
+      document.querySelectorAll('input[name="availability"]:checked').forEach(input => {
+        availability[input.dataset.day].push(input.dataset.hour);
+      });
+      return availability;
+    }
+
+    document.getElementById("cpf").addEventListener("input", function () { this.value = formatCpf(this.value); });
 
     document.querySelectorAll(".toggle-password").forEach(function (button) {
       button.addEventListener("click", function () {
@@ -211,6 +172,7 @@
           email: document.getElementById("email").value.trim(),
           whatsapp: document.getElementById("whatsapp").value.trim(),
           pix_key: document.getElementById("pixKey").value.trim(),
+          availability: getAvailability(),
           password: document.getElementById("password").value
         });
 
@@ -219,6 +181,7 @@
         message.className = "success";
         message.textContent = "Matrícula registrada no Supabase. Se a confirmação por e-mail estiver ativa, confirme seu e-mail antes de entrar.";
         document.getElementById("enrollmentForm").reset();
+        document.querySelectorAll('input[name="availability"]').forEach(input => input.checked = false);
         document.getElementById("password").type = "password";
         document.querySelector(".toggle-password").textContent = "MOSTRAR";
       } catch (err) {
@@ -226,6 +189,8 @@
         message.textContent = err.message || "Não foi possível concluir a matrícula.";
       }
     });
+
+    buildAvailabilityGrid();
   </script>
 </body>
 </html>
