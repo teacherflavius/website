@@ -47,7 +47,8 @@
 
     const headings = Array.from(document.querySelectorAll("h2"));
     const completionHeading = headings.find(function (heading) {
-      return heading.textContent.trim() === "Quiz Concluído!";
+      const text = heading.textContent.trim();
+      return text === "Quiz Concluído!" || text === "Exercício concluído!";
     });
 
     if (!completionHeading) return;
@@ -64,7 +65,7 @@
   const observer = new MutationObserver(injectNotifyButton);
 
   function startObserver() {
-    const root = document.getElementById("root") || document.body;
+    const root = document.getElementById("root") || document.getElementById("app") || document.body;
     observer.observe(root, { childList: true, subtree: true });
     injectNotifyButton();
   }
