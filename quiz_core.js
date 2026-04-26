@@ -1,5 +1,4 @@
 (function () {
-  const RESULTS_KEY = "teacher_flavio_quiz_results";
   const STUDENT_KEY = "teacher_flavio_current_student";
 
   function readJson(key, fallback) {
@@ -24,71 +23,49 @@
   }
 
   function getResults() {
-    return readJson(RESULTS_KEY, []);
+    return [];
   }
 
-  function saveResult(result) {
-    const results = getResults();
+  function resultsToCsv() {
+    return "Data,Nome,Email,Atividade,Acertos,Total,Percentual\n";
+  }
+
+  function downloadCsv() {
+    alert("Os resultados agora são salvos apenas no Supabase. Consulte o histórico em perfil.html.");
+  }
+
+  async function saveResult(result) {
     const completeResult = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2),
       date: new Date().toISOString(),
       name: result.name,
       email: result.email,
       quiz: result.quiz,
-      score: result.score,
-      total: result.total,
-      percentage: Math.round((result.score / result.total) * 100)
+      score: Number(result.score),
+      total: Number(result.total),
+      percentage: Math.round((Number(result.score) / Number(result.total)) * 100),
+      activity_type: result.activity_type || "quiz"
     };
-    results.push(completeResult);
-    writeJson(RESULTS_KEY, results);
 
     if (window.SupabaseResults && typeof window.SupabaseResults.save === "function") {
-      window.SupabaseResults.save({
-        activity_type: result.activity_type || "quiz",
-        activity_title: result.quiz,
-        score: result.score,
-        total: result.total
+      await window.SupabaseResults.save({
+        activity_type: completeResult.activity_type,
+        activity_title: completeResult.quiz,
+        score: completeResult.score,
+        total: completeResult.total
       });
-    }
-
-    if (window.QUIZ_RESULTS_ENDPOINT) {
-      fetch(window.QUIZ_RESULTS_ENDPOINT, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(completeResult)
-      }).catch(function () {});
+    } else if (window.Auth && typeof window.Auth.saveActivityResult === "function") {
+      await window.Auth.saveActivityResult({
+        activity_type: completeResult.activity_type,
+        activity_title: completeResult.quiz,
+        score: completeResult.score,
+        total: completeResult.total
+      });
+    } else {
+      console.warn("Supabase não está disponível. Resultado não salvo.");
     }
 
     return completeResult;
-  }
-
-  function escapeCsv(value) {
-    const text = String(value ?? "");
-    return '"' + text.replace(/"/g, '""') + '"';
-  }
-
-  function resultsToCsv(results) {
-    const header = ["Data", "Nome", "Email", "Quiz", "Acertos", "Total", "Percentual"];
-    const rows = results.map(function (r) {
-      return [r.date, r.name, r.email, r.quiz, r.score, r.total, r.percentage + "%"];
-    });
-    return [header].concat(rows).map(function (row) {
-      return row.map(escapeCsv).join(",");
-    }).join("\n");
-  }
-
-  function downloadCsv() {
-    const csv = resultsToCsv(getResults());
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "resultados_quizzes_teacher_flavio.csv";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
   }
 
   function addBaseStyles() {
@@ -114,7 +91,7 @@
     document.head.appendChild(style);
   }
 
-  function e(type, props) {
+  function e() {
     return React.createElement.apply(React, arguments);
   }
 
@@ -134,13 +111,9 @@
   }
 
   function ParticipantForm(props) {
-    const ReactUseState = React.useState;
-    const state = ReactUseState({ name: "", email: "", consent: false });
-    const form = state[0];
-    const setForm = state[1];
-    const errorState = ReactUseState("");
-    const error = errorState[0];
-    const setError = errorState[1];
+    const useState = React.useState;
+    const [form, setForm] = useState({ name: "", email: "", consent: false });
+    const [error, setError] = useState("");
 
     function update(field, value) {
       setForm(Object.assign({}, form, { [field]: value }));
@@ -162,7 +135,7 @@
       e("div", { style: { marginBottom: 20 } }, e("a", { href: "index.html", className: "btn-back" }, "INÍCIO")),
       e(Header, { title: props.quizTitle, subtitle: "Identificação do aluno" }),
       e("form", { onSubmit: submit, style: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "28px", backdropFilter: "blur(12px)" } },
-        e("p", { style: { color: "#94a3b8", fontSize: 14, lineHeight: 1.6, marginBottom: 18 } }, "Antes de responder ao quiz, informe seus dados para que seu desempenho seja registrado."),
+        e("p", { style: { color: "#94a3b8", fontSize: 14, lineHeight: 1.6, marginBottom: 18 } }, "Antes de responder ao quiz, informe seus dados para que seu desempenho seja registrado no Supabase."),
         e("input", { type: "text", placeholder: "Nome completo", value: form.name, onChange: function (ev) { update("name", ev.target.value); } }),
         e("input", { type: "email", placeholder: "E-mail", value: form.email, onChange: function (ev) { update("email", ev.target.value); } }),
         e("label", { style: { display: "flex", gap: 10, alignItems: "flex-start", margin: "4px 0 16px" } },
@@ -175,8 +148,27 @@
     );
   }
 
+  async function applyLoggedStudentIfAvailable() {
+    if (!window.Auth || !Auth.isConfigured || !Auth.isConfigured()) return null;
+    const user = await Auth.requireAuth();
+    if (!user) return null;
+    const profile = await Auth.getProfile();
+    const student = {
+      name: profile && profile.name ? profile.name : "Aluno",
+      email: profile && profile.email ? profile.email : user.email
+    };
+    setCurrentStudent(student);
+    return student;
+  }
+
   function renderQuiz(config) {
     addBaseStyles();
+    const root = document.getElementById("root");
+    root.innerHTML = '<p style="color:#94a3b8;font-family:Georgia,serif;text-align:center;margin-top:40px;">Carregando atividade...</p>';
+    applyLoggedStudentIfAvailable().then(function () { startQuiz(config); });
+  }
+
+  function startQuiz(config) {
     const root = document.getElementById("root");
     const questions = config.questions;
     const total = questions.length;
@@ -184,30 +176,14 @@
     function App() {
       const useState = React.useState;
       const useEffect = React.useEffect;
-      const currentStudentState = useState(getCurrentStudent());
-      const student = currentStudentState[0];
-      const setStudent = currentStudentState[1];
-      const currentState = useState(0);
-      const current = currentState[0];
-      const setCurrent = currentState[1];
-      const selectedState = useState(null);
-      const selected = selectedState[0];
-      const setSelected = selectedState[1];
-      const confirmedState = useState(false);
-      const confirmed = confirmedState[0];
-      const setConfirmed = confirmedState[1];
-      const scoreState = useState(0);
-      const score = scoreState[0];
-      const setScore = scoreState[1];
-      const finishedState = useState(false);
-      const finished = finishedState[0];
-      const setFinished = finishedState[1];
-      const savedState = useState(false);
-      const saved = savedState[0];
-      const setSaved = savedState[1];
-      const shakeState = useState(false);
-      const shake = shakeState[0];
-      const setShake = shakeState[1];
+      const [student, setStudent] = useState(getCurrentStudent());
+      const [current, setCurrent] = useState(0);
+      const [selected, setSelected] = useState(null);
+      const [confirmed, setConfirmed] = useState(false);
+      const [score, setScore] = useState(0);
+      const [finished, setFinished] = useState(false);
+      const [saved, setSaved] = useState(false);
+      const [shake, setShake] = useState(false);
 
       useEffect(function () {
         if (finished && !saved && student) {
@@ -287,7 +263,7 @@
           e("p", { style: { color: "#94a3b8", fontSize: 14, marginBottom: 8 } }, student.name + " · " + student.email),
           e("div", { style: { marginBottom: 16 } }, e("span", { style: { fontSize: 52, fontWeight: "bold", color: "#a78bfa" } }, score), e("span", { style: { fontSize: 28, color: "#475569" } }, " / " + total)),
           e("p", { style: { color: "#94a3b8", fontSize: 15, marginBottom: 20, lineHeight: 1.6 } }, feedback().msg),
-          e("p", { style: { color: "#6ee7b7", fontSize: 13, marginBottom: 24 } }, saved ? "Resultado registrado." : "Registrando resultado..."),
+          e("p", { style: { color: "#6ee7b7", fontSize: 13, marginBottom: 24 } }, saved ? "Resultado enviado ao Supabase." : "Enviando resultado ao Supabase..."),
           e(Button, { onClick: restart }, "Tentar novamente")
         )
       );
