@@ -55,22 +55,22 @@
     <div class="divider"></div>
 
     <div class="menu-grid">
-      <a class="menu-button protected-link" href="#" data-target="#">
+      <a class="menu-button" href="#">
         <span><span class="icon">🔗</span>LINKS DAS AULAS</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button protected-link" href="exercicios.html" data-target="exercicios.html">
+      <a class="menu-button" href="exercicios.html">
         <span><span class="icon">🧩</span>EXERCÍCIOS</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button protected-link" href="#" data-target="#">
+      <a class="menu-button" href="#">
         <span><span class="icon">🗺️</span>ROTEIRO DE ESTUDOS</span>
         <span class="arrow">›</span>
       </a>
 
-      <a id="guiaDoEstudanteLink" class="menu-button" href="https://canva.link/guiadoestudante" target="_blank" rel="noopener noreferrer" onclick="window.open('https://canva.link/guiadoestudante', '_blank', 'noopener,noreferrer'); return false;">
+      <a id="guiaDoEstudanteLink" class="menu-button" href="https://canva.link/guiadoestudante" target="_blank" rel="noopener noreferrer">
         <span><span class="icon">📘</span>GUIA DO ESTUDANTE</span>
         <span class="arrow">›</span>
       </a>
@@ -117,26 +117,6 @@
       const profile = await Auth.getProfile();
       status.textContent = `Logado como ${profile && profile.name ? profile.name : currentSession.user.email}.`;
     }
-
-    document.querySelectorAll(".protected-link").forEach(function (link) {
-      link.addEventListener("click", async function (event) {
-        event.preventDefault();
-        const target = link.dataset.target || link.getAttribute("href") || "#";
-
-        if (!currentSession) {
-          currentSession = await Auth.getSession();
-        }
-
-        if (!currentSession) {
-          redirectToLogin();
-          return;
-        }
-
-        if (target && target !== "#") {
-          window.location.href = target;
-        }
-      });
-    });
 
     updateStatus();
   </script>
