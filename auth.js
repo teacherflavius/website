@@ -61,6 +61,10 @@
     return String(whatsapp || "").replace(/\D/g, "");
   }
 
+  function normalizePixKey(pixKey) {
+    return String(pixKey || "").trim();
+  }
+
   async function getSession() {
     const client = getClient();
     if (!client) return null;
@@ -127,8 +131,9 @@
     const enrollmentCode = generateEnrollmentCode();
     const cleanCpf = normalizeCpf(data.cpf);
     const cleanWhatsapp = normalizeWhatsapp(data.whatsapp);
+    const pixKey = normalizePixKey(data.pix_key);
 
-    if (!data.name || !data.email || !data.password || !cleanCpf || !cleanWhatsapp) {
+    if (!data.name || !data.email || !data.password || !cleanCpf || !cleanWhatsapp || !pixKey) {
       throw new Error("Preencha todos os campos da matrícula.");
     }
 
@@ -144,6 +149,7 @@
       name: data.name,
       cpf: cleanCpf,
       whatsapp: cleanWhatsapp,
+      pix_key: pixKey,
       enrollment_code: enrollmentCode,
       enrolled: true
     };
@@ -162,14 +168,21 @@
     if (response.data && response.data.user) {
       const userId = response.data.user.id;
 
-      const basicProfileResponse = await client.from("profiles").upsert({
+      const profilePayload = {
         id: userId,
         name: data.name,
-        email: data.email
-      }).select().single();
+        email: data.email,
+        cpf: cleanCpf,
+        whatsapp: cleanWhatsapp,
+        pix_key: pixKey,
+        enrollment_code: enrollmentCode,
+        enrolled: true
+      };
+
+      const basicProfileResponse = await client.from("profiles").upsert(profilePayload).select().single();
 
       if (basicProfileResponse.error) {
-        console.warn("Não foi possível atualizar profiles com dados básicos:", basicProfileResponse.error.message);
+        console.warn("Não foi possível atualizar profiles com os dados de matrícula:", basicProfileResponse.error.message);
       }
 
       await tryInsertEnrollmentRecord(client, {
@@ -178,6 +191,7 @@
         cpf: cleanCpf,
         email: data.email,
         whatsapp: cleanWhatsapp,
+        pix_key: pixKey,
         enrollment_code: enrollmentCode,
         enrolled: true,
         created_at: new Date().toISOString()
@@ -216,6 +230,7 @@
       email: user.email,
       cpf: user.user_metadata && user.user_metadata.cpf || "",
       whatsapp: user.user_metadata && user.user_metadata.whatsapp || "",
+      pix_key: user.user_metadata && user.user_metadata.pix_key || "",
       enrollment_code: user.user_metadata && user.user_metadata.enrollment_code || "",
       enrolled: user.user_metadata && user.user_metadata.enrolled || false
     };
