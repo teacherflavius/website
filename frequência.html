@@ -31,6 +31,7 @@
     .record strong { display: block; color: #f1f5f9; font-size: 15px; margin-bottom: 6px; }
     .record p { color: #cbd5e1; font-size: 13px; line-height: 1.5; }
     .empty { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+    .error { color: #fca5a5; font-size: 13px; line-height: 1.5; margin-top: 10px; }
   </style>
 </head>
 <body class="auth-checking">
@@ -64,12 +65,13 @@
         <textarea id="classNotes" placeholder="Ex.: conversação, revisão de gramática, tarefa corrigida, falta justificada..."></textarea>
 
         <button type="submit">SALVAR REGISTRO</button>
+        <div id="formMessage" class="error"></div>
       </form>
     </div>
 
     <div class="panel">
       <h2>Histórico do aluno</h2>
-      <div id="recordsList" class="empty">Nenhum registro cadastrado ainda.</div>
+      <div id="recordsList" class="empty">Carregando registros...</div>
     </div>
   </div>
 
@@ -81,37 +83,50 @@
       window.location.href = "login.html?next=" + encodeURIComponent("frequência.html");
     }
 
-    function getStorageKey() {
-      const userId = currentSession && currentSession.user ? currentSession.user.id : "sem_usuario";
-      return "frequencia_" + userId;
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
-    function loadRecords() {
-      try {
-        return JSON.parse(localStorage.getItem(getStorageKey())) || [];
-      } catch (error) {
-        return [];
-      }
+    async function loadRecords() {
+      const client = Auth.getClient();
+      const response = await client
+        .from("student_frequency")
+        .select("id, class_date, attendance_status, class_notes, created_at")
+        .eq("user_id", currentSession.user.id)
+        .order("class_date", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (response.error) throw response.error;
+      return response.data || [];
     }
 
-    function saveRecords(records) {
-      localStorage.setItem(getStorageKey(), JSON.stringify(records));
-    }
-
-    function renderRecords() {
+    async function renderRecords() {
       const list = document.getElementById("recordsList");
-      const records = loadRecords();
 
-      if (!records.length) {
+      try {
+        const records = await loadRecords();
+
+        if (!records.length) {
+          list.className = "empty";
+          list.textContent = "Nenhum registro cadastrado ainda.";
+          return;
+        }
+
+        list.className = "";
+        list.innerHTML = records.map(function (record) {
+          return '<div class="record"><strong>' +
+            escapeHtml(record.class_date) + ' — ' + escapeHtml(record.attendance_status) +
+            '</strong><p>' + escapeHtml(record.class_notes || 'Sem observações.') + '</p></div>';
+        }).join("");
+      } catch (error) {
         list.className = "empty";
-        list.textContent = "Nenhum registro cadastrado ainda.";
-        return;
+        list.textContent = "Não foi possível carregar os registros. Verifique se a tabela student_frequency foi criada no Supabase.";
       }
-
-      list.className = "";
-      list.innerHTML = records.map(function (record) {
-        return '<div class="record"><strong>' + record.date + ' — ' + record.status + '</strong><p>' + (record.notes || 'Sem observações.') + '</p></div>';
-      }).join("");
     }
 
     async function guardFrequencyPage() {
@@ -134,24 +149,32 @@
       const status = document.getElementById("loginStatus");
       status.textContent = "Aluno: " + (currentProfile && currentProfile.name ? currentProfile.name : currentSession.user.email) + ".";
       document.body.classList.remove("auth-checking");
-      renderRecords();
+      await renderRecords();
       return true;
     }
 
-    document.getElementById("frequencyForm").addEventListener("submit", function (event) {
+    document.getElementById("frequencyForm").addEventListener("submit", async function (event) {
       event.preventDefault();
+      const message = document.getElementById("formMessage");
+      message.textContent = "";
 
-      const records = loadRecords();
-      records.unshift({
-        date: document.getElementById("classDate").value,
-        status: document.getElementById("attendanceStatus").value,
-        notes: document.getElementById("classNotes").value.trim(),
-        created_at: new Date().toISOString()
-      });
+      try {
+        const client = Auth.getClient();
+        const payload = {
+          user_id: currentSession.user.id,
+          class_date: document.getElementById("classDate").value,
+          attendance_status: document.getElementById("attendanceStatus").value,
+          class_notes: document.getElementById("classNotes").value.trim()
+        };
 
-      saveRecords(records);
-      document.getElementById("frequencyForm").reset();
-      renderRecords();
+        const response = await client.from("student_frequency").insert(payload);
+        if (response.error) throw response.error;
+
+        document.getElementById("frequencyForm").reset();
+        await renderRecords();
+      } catch (error) {
+        message.textContent = error.message || "Não foi possível salvar o registro.";
+      }
     });
 
     guardFrequencyPage();
