@@ -151,14 +151,6 @@
     return response.data;
   }
 
-  async function tryInsertEnrollmentRecord(client, payload) {
-    try {
-      await client.from("student_enrollments").insert(payload);
-    } catch (error) {
-      console.warn("Tabela student_enrollments indisponível. Matrícula mantida nos metadados do usuário.", error);
-    }
-  }
-
   async function enrollStudent(data) {
     const client = getClient();
     if (!client) throw new Error("Supabase não configurado.");
@@ -228,19 +220,8 @@
         console.warn("Não foi possível atualizar profiles com os dados de matrícula:", basicProfileResponse.error.message);
       }
 
-      await tryInsertEnrollmentRecord(client, Object.assign({
-        user_id: userId,
-        name: data.name,
-        cpf: cleanCpf,
-        email: data.email,
-        whatsapp: cleanWhatsapp,
-        pix_key: pixKey,
-        availability: availability,
-        enrollment_code: enrollmentCode,
-        enrolled: true,
-        created_at: new Date().toISOString()
-      }, availabilityColumns));
-    }
+      
+    l
 
     return {
       user: response.data ? response.data.user : null,
