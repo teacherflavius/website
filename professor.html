@@ -72,6 +72,20 @@
       return student.enrolled === true || student.enrolled === "true" || !!student.enrollment_code;
     }
 
+    function normalizeStudent(student, source) {
+      return {
+        id: student.id || student.user_id || "",
+        name: student.name || "Aluno sem nome",
+        email: student.email || "",
+        cpf: student.cpf || "",
+        whatsapp: student.whatsapp || "",
+        enrollment_code: student.enrollment_code || "",
+        enrolled: student.enrolled,
+        availability: student.availability || {},
+        source: source
+      };
+    }
+
     function formatAvailability(profile) {
       const days = [["seg", "Segunda"], ["ter", "Terça"], ["qua", "Quarta"], ["qui", "Quinta"], ["sex", "Sexta"]];
       const availability = profile.availability || {};
@@ -90,15 +104,30 @@
       return !!response.data;
     }
 
-    async function loadStudents() {
+    async function loadProfiles() {
       const client = Auth.getClient();
       const response = await client
         .from("profiles")
         .select("id, name, email, cpf, whatsapp, enrollment_code, enrolled, availability")
         .order("name", { ascending: true });
-
       if (response.error) throw response.error;
-      return response.data || [];
+      return (response.data || []).map(function (student) { return normalizeStudent(student, "profiles"); });
+    }
+
+    async function loadEnrollments() {
+      const client = Auth.getClient();
+      const response = await client
+        .from("student_enrollments")
+        .select("id, user_id, name, email, cpf, whatsapp, enrollment_code, enrolled, availability, created_at")
+        .order("created_at", { ascending: false });
+      if (response.error) return [];
+      return (response.data || []).map(function (student) { return normalizeStudent(student, "student_enrollments"); });
+    }
+
+    async function loadStudents() {
+      const profiles = await loadProfiles();
+      if (profiles.length) return profiles;
+      return await loadEnrollments();
     }
 
     async function renderStudents() {
@@ -108,7 +137,7 @@
 
         if (!students.length) {
           list.className = "empty";
-          list.textContent = "Nenhum perfil encontrado. Verifique se o aluno confirmou o e-mail ou se o registro foi salvo na tabela profiles.";
+          list.textContent = "Nenhum aluno encontrado em profiles ou student_enrollments. Verifique se a matrícula salvou dados no Supabase e se o SQL administrativo foi executado.";
           return;
         }
 
@@ -123,11 +152,12 @@
             '<p><b>CPF:</b> ' + escapeHtml(student.cpf || "Não informado") + '</p>' +
             '<p><b>Código de matrícula:</b> ' + escapeHtml(student.enrollment_code || "Não informado") + '</p>' +
             '<p><b>Disponibilidade:</b> ' + escapeHtml(formatAvailability(student)) + '</p>' +
+            '<p><b>Origem:</b> ' + escapeHtml(student.source) + '</p>' +
           '</div>';
         }).join("");
       } catch (error) {
         list.className = "error";
-        list.textContent = "Não foi possível carregar os alunos. Verifique se o SQL da área do professor foi executado no Supabase e se a política de leitura da tabela profiles está ativa.";
+        list.textContent = "Não foi possível carregar os alunos. Reexecute o arquivo supabase_professor_admin.sql no Supabase, trocando professor@email.com pelo seu e-mail.";
       }
     }
 
