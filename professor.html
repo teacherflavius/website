@@ -96,7 +96,7 @@
 
         if (!students.length) {
           list.className = "empty";
-          list.textContent = "Nenhum aluno encontrado. Verifique se há registros em profiles ou student_enrollments.";
+          list.textContent = "Nenhum aluno encontrado. Verifique se há registros na tabela profiles.";
           return;
         }
 
@@ -111,7 +111,6 @@
             '<p><b>CPF:</b> ' + escapeHtml(student.cpf || "Não informado") + '</p>' +
             '<p><b>Código de matrícula:</b> ' + escapeHtml(student.enrollment_code || "Não informado") + '</p>' +
             '<p><b>Disponibilidade:</b> ' + escapeHtml(formatAvailability(student)) + '</p>' +
-            '<p><b>Origem:</b> ' + escapeHtml(student.source || "Não informada") + '</p>' +
           '</div>';
         }).join("");
       } catch (error) {
