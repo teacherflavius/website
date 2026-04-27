@@ -17,40 +17,10 @@ create policy "Professor pode verificar suas próprias credenciais"
   for select
   using (lower(email) = lower(auth.jwt() ->> 'email'));
 
--- Cadastre aqui o e-mail do professor administrador.
 insert into public.teacher_admins (email)
 values ('professor@email.com')
 on conflict (email) do nothing;
 
--- Garante que a tabela student_enrollments exista.
-create table if not exists public.student_enrollments (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade,
-  name text,
-  cpf text,
-  email text,
-  whatsapp text,
-  pix_key text,
-  availability jsonb default '{}'::jsonb,
-  enrollment_code text,
-  enrolled boolean default true,
-  created_at timestamptz not null default now()
-);
-
-alter table public.student_enrollments enable row level security;
-
-drop policy if exists "Professores podem visualizar matrículas" on public.student_enrollments;
-create policy "Professores podem visualizar matrículas"
-  on public.student_enrollments
-  for select
-  using (
-    exists (
-      select 1 from public.teacher_admins ta
-      where lower(ta.email) = lower(auth.jwt() ->> 'email')
-    )
-  );
-
--- Libera leitura de profiles para professores autorizados.
 alter table public.profiles enable row level security;
 
 drop policy if exists "Professores podem visualizar alunos matriculados" on public.profiles;
@@ -65,8 +35,6 @@ create policy "Professores podem visualizar perfis"
     )
   );
 
--- Função segura para a área do professor.
--- Ela evita problemas comuns de RLS no front-end e retorna alunos de profiles e student_enrollments.
 create or replace function public.get_teacher_students()
 returns table (
   id text,
@@ -111,27 +79,7 @@ begin
     'profiles'::text as source,
     null::timestamptz as created_at
   from public.profiles p
-
-  union all
-
-  select
-    se.id::text as id,
-    se.user_id::text as user_id,
-    coalesce(se.name, '')::text as name,
-    coalesce(se.email, '')::text as email,
-    coalesce(se.cpf, '')::text as cpf,
-    coalesce(se.whatsapp, '')::text as whatsapp,
-    coalesce(se.enrollment_code, '')::text as enrollment_code,
-    coalesce(se.enrolled, true)::boolean as enrolled,
-    coalesce(se.availability::jsonb, '{}'::jsonb) as availability,
-    'student_enrollments'::text as source,
-    se.created_at
-  from public.student_enrollments se
-  where not exists (
-    select 1 from public.profiles p
-    where p.id = se.user_id
-  )
-  order by name asc nulls last;
+  order by p.name asc nulls last;
 end;
 $$;
 
