@@ -27,6 +27,8 @@
     .student-card p { color: #cbd5e1; font-size: 13px; line-height: 1.55; margin-bottom: 4px; }
     .empty, .error { color: #94a3b8; font-size: 14px; line-height: 1.5; }
     .error { color: #fca5a5; }
+    .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; margin-left: 6px; background: rgba(110,231,183,0.12); color: #6ee7b7; border: 1px solid rgba(110,231,183,0.3); }
+    .pill.pending { background: rgba(251,191,36,0.12); color: #fde68a; border-color: rgba(251,191,36,0.3); }
   </style>
 </head>
 <body class="auth-checking">
@@ -45,7 +47,7 @@
     <div class="divider"></div>
 
     <div class="panel">
-      <h2>Alunos matriculados</h2>
+      <h2>Alunos cadastrados</h2>
       <div id="studentsList" class="empty">Carregando alunos...</div>
     </div>
   </div>
@@ -66,14 +68,12 @@
         .replace(/'/g, "&#039;");
     }
 
+    function isEnrolled(student) {
+      return student.enrolled === true || student.enrolled === "true" || !!student.enrollment_code;
+    }
+
     function formatAvailability(profile) {
-      const days = [
-        ["seg", "Segunda"],
-        ["ter", "Terça"],
-        ["qua", "Quarta"],
-        ["qui", "Quinta"],
-        ["sex", "Sexta"]
-      ];
+      const days = [["seg", "Segunda"], ["ter", "Terça"], ["qua", "Quarta"], ["qui", "Quinta"], ["sex", "Sexta"]];
       const availability = profile.availability || {};
       const parts = days.map(function (day) {
         const values = Array.isArray(availability[day[0]]) ? availability[day[0]] : [];
@@ -85,12 +85,7 @@
     async function isTeacherAdmin() {
       const client = Auth.getClient();
       const email = currentSession && currentSession.user ? currentSession.user.email : "";
-      const response = await client
-        .from("teacher_admins")
-        .select("id, email")
-        .ilike("email", email)
-        .maybeSingle();
-
+      const response = await client.from("teacher_admins").select("id, email").ilike("email", email).maybeSingle();
       if (response.error) throw response.error;
       return !!response.data;
     }
@@ -100,7 +95,6 @@
       const response = await client
         .from("profiles")
         .select("id, name, email, cpf, whatsapp, enrollment_code, enrolled, availability")
-        .eq("enrolled", true)
         .order("name", { ascending: true });
 
       if (response.error) throw response.error;
@@ -114,14 +108,16 @@
 
         if (!students.length) {
           list.className = "empty";
-          list.textContent = "Nenhum aluno matriculado encontrado.";
+          list.textContent = "Nenhum perfil encontrado. Verifique se o aluno confirmou o e-mail ou se o registro foi salvo na tabela profiles.";
           return;
         }
 
         list.className = "";
         list.innerHTML = students.map(function (student) {
+          const enrolled = isEnrolled(student);
           return '<div class="student-card">' +
-            '<strong>' + escapeHtml(student.name || "Aluno sem nome") + '</strong>' +
+            '<strong>' + escapeHtml(student.name || "Aluno sem nome") +
+            '<span class="pill ' + (enrolled ? '' : 'pending') + '">' + (enrolled ? 'Matriculado' : 'Cadastro sem matrícula confirmada') + '</span></strong>' +
             '<p><b>E-mail:</b> ' + escapeHtml(student.email || "Não informado") + '</p>' +
             '<p><b>WhatsApp:</b> ' + escapeHtml(student.whatsapp || "Não informado") + '</p>' +
             '<p><b>CPF:</b> ' + escapeHtml(student.cpf || "Não informado") + '</p>' +
@@ -131,13 +127,12 @@
         }).join("");
       } catch (error) {
         list.className = "error";
-        list.textContent = "Não foi possível carregar os alunos. Verifique se o SQL da área do professor foi executado no Supabase.";
+        list.textContent = "Não foi possível carregar os alunos. Verifique se o SQL da área do professor foi executado no Supabase e se a política de leitura da tabela profiles está ativa.";
       }
     }
 
     async function guardProfessorArea() {
       const status = document.getElementById("adminStatus");
-
       if (!window.Auth || !Auth.isConfigured()) {
         if (window.Auth && Auth.showConfigWarning) Auth.showConfigWarning();
         status.textContent = "Supabase ainda não configurado.";
@@ -146,7 +141,6 @@
       }
 
       currentSession = await Auth.getSession();
-
       if (!currentSession || !currentSession.user) {
         redirectToLogin();
         return;
