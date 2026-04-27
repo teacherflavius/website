@@ -36,9 +36,6 @@ create policy "Professores podem visualizar perfis"
     )
   );
 
--- Função usada pela página professor.html.
--- Ela busca alunos em public.profiles e também em auth.users/raw_user_meta_data.
--- Isso resolve o caso em que o cadastro foi criado no Auth, mas o registro ainda não apareceu em profiles.
 create or replace function public.get_teacher_students()
 returns table (
   id text,
@@ -137,3 +134,64 @@ end;
 $$;
 
 grant execute on function public.get_teacher_students() to authenticated;
+
+-- Função usada pelo botão EXCLUIR MATRÍCULA em professor.html.
+-- Ela remove dados do aluno em profiles, student_frequency e activity_results quando existirem.
+-- Também tenta remover o usuário de auth.users para apagar a conta de login.
+create or replace function public.delete_teacher_student(target_user_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  requester_email text;
+  deleted_profile_count integer := 0;
+  deleted_frequency_count integer := 0;
+  deleted_activity_count integer := 0;
+  deleted_auth_count integer := 0;
+begin
+  requester_email := auth.jwt() ->> 'email';
+
+  if requester_email is null or not exists (
+    select 1 from public.teacher_admins ta
+    where lower(ta.email) = lower(requester_email)
+  ) then
+    raise exception 'Acesso negado: usuário não cadastrado como professor.';
+  end if;
+
+  if exists (
+    select 1 from public.teacher_admins ta
+    join auth.users u on lower(u.email) = lower(ta.email)
+    where u.id = target_user_id
+  ) then
+    raise exception 'Não é permitido excluir uma conta de professor.';
+  end if;
+
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'student_frequency') then
+    delete from public.student_frequency where user_id = target_user_id;
+    get diagnostics deleted_frequency_count = row_count;
+  end if;
+
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'activity_results') then
+    delete from public.activity_results where user_id = target_user_id;
+    get diagnostics deleted_activity_count = row_count;
+  end if;
+
+  delete from public.profiles where id = target_user_id;
+  get diagnostics deleted_profile_count = row_count;
+
+  delete from auth.users where id = target_user_id;
+  get diagnostics deleted_auth_count = row_count;
+
+  return jsonb_build_object(
+    'ok', true,
+    'deleted_profile_count', deleted_profile_count,
+    'deleted_frequency_count', deleted_frequency_count,
+    'deleted_activity_count', deleted_activity_count,
+    'deleted_auth_count', deleted_auth_count
+  );
+end;
+$$;
+
+grant execute on function public.delete_teacher_student(uuid) to authenticated;
