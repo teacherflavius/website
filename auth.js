@@ -1,10 +1,12 @@
 (function () {
   function isConfigured() {
-    return window.SUPABASE_CONFIG &&
+    return !!(
+      window.SUPABASE_CONFIG &&
       window.SUPABASE_CONFIG.url &&
       window.SUPABASE_CONFIG.anonKey &&
       !window.SUPABASE_CONFIG.url.includes("COLE_AQUI") &&
-      !window.SUPABASE_CONFIG.anonKey.includes("COLE_AQUI");
+      !window.SUPABASE_CONFIG.anonKey.includes("COLE_AQUI")
+    );
   }
 
   function getClient() {
@@ -69,14 +71,12 @@
     const days = ["seg", "ter", "qua", "qui", "sex"];
     const hours = ["09", "10", "12", "13", "15", "17", "18", "20", "21"];
     const normalized = {};
-
     days.forEach(function (day) {
       const selected = Array.isArray(availability && availability[day]) ? availability[day] : [];
       normalized[day] = selected.filter(function (hour) {
         return hours.includes(hour);
       });
     });
-
     return normalized;
   }
 
@@ -90,13 +90,11 @@
     const days = ["seg", "ter", "qua", "qui", "sex"];
     const hours = ["09", "10", "12", "13", "15", "17", "18", "20", "21"];
     const columns = {};
-
     days.forEach(function (day) {
       hours.forEach(function (hour) {
         columns["availability_" + day + "_" + hour] = Array.isArray(availability[day]) && availability[day].includes(hour);
       });
     });
-
     return columns;
   }
 
@@ -140,7 +138,6 @@
       }
     });
     if (response.error) throw response.error;
-
     if (response.data && response.data.user) {
       await client.from("profiles").upsert({
         id: response.data.user.id,
@@ -165,15 +162,8 @@
     if (!data.name || !data.email || !data.password || !cleanCpf || !cleanWhatsapp || !pixKey) {
       throw new Error("Preencha todos os campos da matrícula.");
     }
-
-    if (cleanCpf.length !== 11) {
-      throw new Error("CPF inválido. Informe 11 dígitos.");
-    }
-
-    if (cleanWhatsapp.length < 10) {
-      throw new Error("WhatsApp inválido.");
-    }
-
+    if (cleanCpf.length !== 11) throw new Error("CPF inválido. Informe 11 dígitos.");
+    if (cleanWhatsapp.length < 10) throw new Error("WhatsApp inválido.");
     if (countAvailabilitySlots(availability) === 0) {
       throw new Error("Selecione pelo menos um horário disponível para aulas durante a semana.");
     }
@@ -196,12 +186,10 @@
         emailRedirectTo: getRedirectUrl()
       }
     });
-
     if (response.error) throw response.error;
 
     if (response.data && response.data.user) {
       const userId = response.data.user.id;
-
       const profilePayload = Object.assign({
         id: userId,
         name: data.name,
@@ -214,14 +202,11 @@
         enrolled: true
       }, availabilityColumns);
 
-      const basicProfileResponse = await client.from("profiles").upsert(profilePayload).select().single();
-
-      if (basicProfileResponse.error) {
-        console.warn("Não foi possível atualizar profiles com os dados de matrícula:", basicProfileResponse.error.message);
+      const profileResponse = await client.from("profiles").upsert(profilePayload).select().single();
+      if (profileResponse.error) {
+        console.warn("Não foi possível atualizar profiles com os dados de matrícula:", profileResponse.error.message);
       }
-
-      
-    l
+    }
 
     return {
       user: response.data ? response.data.user : null,
@@ -268,7 +253,6 @@
     const client = getClient();
     const user = await getUser();
     if (!client || !user) return null;
-
     const payload = {
       user_id: user.id,
       activity_type: result.activity_type || result.type || "activity",
@@ -278,7 +262,6 @@
       percentage: Math.round((Number(result.score) / Number(result.total)) * 100),
       completed_at: new Date().toISOString()
     };
-
     const response = await client.from("activity_results").insert(payload).select().single();
     if (response.error) {
       console.warn("Erro ao salvar no Supabase:", response.error.message);
@@ -301,19 +284,19 @@
   }
 
   window.Auth = {
-    isConfigured,
-    getClient,
-    showConfigWarning,
-    generateEnrollmentCode,
-    getSession,
-    getUser,
-    requireAuth,
-    signUp,
-    enrollStudent,
-    signIn,
-    signOut,
-    getProfile,
-    saveActivityResult,
-    getMyResults
+    isConfigured: isConfigured,
+    getClient: getClient,
+    showConfigWarning: showConfigWarning,
+    generateEnrollmentCode: generateEnrollmentCode,
+    getSession: getSession,
+    getUser: getUser,
+    requireAuth: requireAuth,
+    signUp: signUp,
+    enrollStudent: enrollStudent,
+    signIn: signIn,
+    signOut: signOut,
+    getProfile: getProfile,
+    saveActivityResult: saveActivityResult,
+    getMyResults: getMyResults
   };
 })();
