@@ -38,11 +38,17 @@
       font-size: 17px;
       font-weight: bold;
       letter-spacing: 0.5px;
+      text-decoration: none;
     }
     .lesson-title span:first-child {
       display: flex;
       align-items: center;
       gap: 12px;
+    }
+    a.lesson-title { cursor: pointer; }
+    a.lesson-title:hover .arrow {
+      color: #818cf8;
+      transform: translateX(4px);
     }
     .completion-row {
       display: flex;
@@ -101,6 +107,10 @@
     let currentUser = null;
     let completedLessons = new Map();
 
+    const lessonLinks = {
+      "lesson-1": "https://drive.google.com/file/d/1IcPBeVjsZfm0RnqqUwhDhwoF2QY3qIA1/view?usp=sharing"
+    };
+
     function redirectToLogin() {
       window.location.href = "login.html?next=" + encodeURIComponent("roteiro_de_estudos.html");
     }
@@ -119,6 +129,13 @@
       document.getElementById("loginStatus").textContent = text;
     }
 
+    function renderLessonTitle(lessonId, title) {
+      const lessonUrl = lessonLinks[lessonId];
+      const inner = '<span><span class="icon">📖</span>' + title + '</span><span class="arrow">›</span>';
+      if (!lessonUrl) return '<div class="lesson-title">' + inner + '</div>';
+      return '<a class="lesson-title" href="' + lessonUrl + '" target="_blank" rel="noopener noreferrer">' + inner + '</a>';
+    }
+
     function renderLessons() {
       const grid = document.getElementById("lessonsGrid");
       const cards = [];
@@ -128,7 +145,7 @@
         const isDone = completedLessons.get(lessonId) === true;
         cards.push(
           '<div class="lesson-card ' + (isDone ? 'done' : '') + '" data-lesson-id="' + lessonId + '">' +
-            '<div class="lesson-title"><span><span class="icon">📖</span>' + title + '</span><span class="arrow">›</span></div>' +
+            renderLessonTitle(lessonId, title) +
             '<div class="completion-row">' +
               '<button type="button" class="completion-button" data-lesson-id="' + lessonId + '">' + (isDone ? 'MARCAR COMO NÃO FEITA' : 'MARCAR COMO FEITA') + '</button>' +
               '<span class="completion-status ' + (isDone ? 'saved' : '') + '" id="status-' + lessonId + '">' + (isDone ? 'Feita' : 'Não feita') + '</span>' +
@@ -221,7 +238,7 @@
 
       try {
         await loadCompletedLessons();
-        setStatus("Aluno conectado: " + currentUser.email + ". Clique em uma lição para marcar ou desmarcar como feita.");
+        setStatus("Aluno conectado: " + currentUser.email + ". Clique em uma lição para abrir o material; use o botão para marcar ou desmarcar como feita.");
       } catch (error) {
         setStatus("Não foi possível carregar seus registros. Execute supabase_roteiro_de_estudos.sql no Supabase.");
       }
