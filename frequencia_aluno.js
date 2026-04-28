@@ -1,5 +1,6 @@
 let currentSession = null;
 let selectedStudent = null;
+let editingFrequencyId = null;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -33,6 +34,10 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/`/g, "&#096;");
+}
+
 function formatDateInput(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 6);
   if (digits.length <= 2) return digits;
@@ -62,6 +67,34 @@ function formatDateForDisplay(value) {
   return match[3] + "/" + match[2] + "/" + match[1].slice(2);
 }
 
+function setFormMode(mode) {
+  const submitButton = document.querySelector('#frequencyForm button[type="submit"]');
+  const cancelButton = document.getElementById("cancelEditButton");
+  const message = document.getElementById("formMessage");
+
+  if (mode === "edit") {
+    if (submitButton) submitButton.textContent = "SALVAR ALTERAÇÕES";
+    if (cancelButton) cancelButton.style.display = "inline-flex";
+    if (message) {
+      message.className = "empty";
+      message.textContent = "Editando registro selecionado.";
+    }
+  } else {
+    editingFrequencyId = null;
+    if (submitButton) submitButton.textContent = "SALVAR REGISTRO";
+    if (cancelButton) cancelButton.style.display = "none";
+    if (message) {
+      message.className = "empty";
+      message.textContent = "";
+    }
+  }
+}
+
+function cancelEdit() {
+  document.getElementById("frequencyForm").reset();
+  setFormMode("create");
+}
+
 async function loadFrequency() {
   const client = Auth.getClient();
   const response = await client.rpc("get_teacher_student_frequency", { target_user_id: selectedStudent.userId });
@@ -70,10 +103,38 @@ async function loadFrequency() {
 }
 
 function renderHistoryItem(record) {
+  const safeId = escapeAttribute(record.id);
+  const safeDate = escapeAttribute(formatDateForDisplay(record.class_date));
+  const safeStatus = escapeAttribute(record.attendance_status);
+  const safeNotes = escapeAttribute(record.class_notes || "");
+
   return '<div class="student-card">' +
     '<strong>' + escapeHtml(formatDateForDisplay(record.class_date)) + ' — ' + escapeHtml(record.attendance_status) + '</strong>' +
     '<p><b>Lições / observações:</b> ' + escapeHtml(record.class_notes || 'Sem observações.') + '</p>' +
+    '<div class="frequency-actions" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">' +
+      '<button type="button" class="edit-frequency-button" data-id="' + safeId + '" data-date="' + safeDate + '" data-status="' + safeStatus + '" data-notes="' + safeNotes + '" style="flex:1; min-width:120px; border:1px solid rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd; border-radius:12px; padding:11px 14px; font-family:Georgia,serif; font-size:13px; font-weight:bold; cursor:pointer; letter-spacing:0.4px;">EDITAR</button>' +
+      '<button type="button" class="delete-frequency-button" data-id="' + safeId + '" style="flex:1; min-width:120px; border:1px solid rgba(248,113,113,0.45); background:rgba(248,113,113,0.10); color:#fca5a5; border-radius:12px; padding:11px 14px; font-family:Georgia,serif; font-size:13px; font-weight:bold; cursor:pointer; letter-spacing:0.4px;">APAGAR</button>' +
+    '</div>' +
   '</div>';
+}
+
+function attachHistoryActions() {
+  document.querySelectorAll(".edit-frequency-button").forEach(function (button) {
+    button.addEventListener("click", function () {
+      editingFrequencyId = button.dataset.id;
+      document.getElementById("classDate").value = button.dataset.date || "";
+      document.getElementById("attendanceStatus").value = button.dataset.status || "Compareceu";
+      document.getElementById("classNotes").value = button.dataset.notes || "";
+      setFormMode("edit");
+      document.getElementById("frequencyForm").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+  document.querySelectorAll(".delete-frequency-button").forEach(function (button) {
+    button.addEventListener("click", function () {
+      deleteFrequency(button.dataset.id, button);
+    });
+  });
 }
 
 async function renderFrequencyHistory() {
@@ -87,6 +148,7 @@ async function renderFrequencyHistory() {
     }
     list.className = "";
     list.innerHTML = records.map(renderHistoryItem).join("");
+    attachHistoryActions();
   } catch (error) {
     list.className = "error";
     list.textContent = "Não foi possível carregar a frequência: " + (error.message || "erro desconhecido") + ". Execute supabase_frequencia_professor.sql no Supabase.";
@@ -97,7 +159,7 @@ async function saveFrequency(event) {
   event.preventDefault();
   const message = document.getElementById("formMessage");
   message.className = "empty";
-  message.textContent = "Salvando...";
+  message.textContent = editingFrequencyId ? "Salvando alterações..." : "Salvando...";
 
   try {
     const classDateInput = document.getElementById("classDate").value;
@@ -106,22 +168,53 @@ async function saveFrequency(event) {
     const classNotes = document.getElementById("classNotes").value.trim();
 
     const client = Auth.getClient();
-    const response = await client.rpc("save_teacher_student_frequency", {
+    const rpcName = editingFrequencyId ? "update_teacher_student_frequency" : "save_teacher_student_frequency";
+    const payload = editingFrequencyId ? {
+      target_frequency_id: editingFrequencyId,
+      target_class_date: classDate,
+      target_attendance_status: attendanceStatus,
+      target_class_notes: classNotes
+    } : {
       target_user_id: selectedStudent.userId,
       target_class_date: classDate,
       target_attendance_status: attendanceStatus,
       target_class_notes: classNotes
-    });
+    };
 
+    const response = await client.rpc(rpcName, payload);
     if (response.error) throw response.error;
 
     document.getElementById("frequencyForm").reset();
+    setFormMode("create");
     message.className = "empty";
-    message.textContent = "Registro salvo.";
+    message.textContent = editingFrequencyId ? "Registro atualizado." : "Registro salvo.";
     await renderFrequencyHistory();
   } catch (error) {
     message.className = "error";
     message.textContent = error.message || "Não foi possível salvar o registro.";
+  }
+}
+
+async function deleteFrequency(frequencyId, button) {
+  const confirmed = window.confirm("Tem certeza que deseja apagar este registro de frequência?");
+  if (!confirmed) return;
+
+  button.disabled = true;
+  button.textContent = "APAGANDO...";
+
+  try {
+    const client = Auth.getClient();
+    const response = await client.rpc("delete_teacher_student_frequency", {
+      target_frequency_id: frequencyId
+    });
+    if (response.error) throw response.error;
+
+    if (editingFrequencyId === frequencyId) cancelEdit();
+    await renderFrequencyHistory();
+  } catch (error) {
+    alert("Não foi possível apagar o registro: " + (error.message || "erro desconhecido") + ". Reexecute o SQL atualizado no Supabase.");
+    button.disabled = false;
+    button.textContent = "APAGAR";
   }
 }
 
@@ -162,6 +255,9 @@ if (classDateInput) {
     this.value = formatDateInput(this.value);
   });
 }
+
+const cancelEditButton = document.getElementById("cancelEditButton");
+if (cancelEditButton) cancelEditButton.addEventListener("click", cancelEdit);
 
 document.getElementById("frequencyForm").addEventListener("submit", saveFrequency);
 guardPage();
