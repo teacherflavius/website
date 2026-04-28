@@ -18,6 +18,21 @@ create index if not exists class_students_user_id_idx
 
 alter table public.class_students enable row level security;
 
+create table if not exists public.student_frequency (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  class_date date not null,
+  attendance_status text not null check (attendance_status in ('Compareceu', 'Faltou')),
+  class_notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists student_frequency_user_id_idx on public.student_frequency(user_id);
+create index if not exists student_frequency_class_date_idx on public.student_frequency(class_date desc);
+
+alter table public.student_frequency enable row level security;
+
 create or replace function public.is_teacher_admin()
 returns boolean
 language sql
@@ -160,3 +175,68 @@ end;
 $$;
 
 grant execute on function public.remove_teacher_class_student(integer, uuid) to authenticated;
+
+create or replace function public.save_teacher_class_attendance(
+  target_class_number integer,
+  target_class_date date,
+  target_general_notes text,
+  attendance_records jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  item jsonb;
+  target_user_id uuid;
+  target_status text;
+  target_notes text;
+  inserted_count integer := 0;
+begin
+  if not public.is_teacher_admin() then
+    raise exception 'Acesso negado: usuário não cadastrado como professor.';
+  end if;
+
+  if target_class_number < 1 or target_class_number > 45 then
+    raise exception 'Turma inválida. Use um número entre 1 e 45.';
+  end if;
+
+  if attendance_records is null or jsonb_array_length(attendance_records) = 0 then
+    raise exception 'Nenhum aluno foi selecionado para registrar frequência.';
+  end if;
+
+  for item in select * from jsonb_array_elements(attendance_records)
+  loop
+    target_user_id := (item ->> 'user_id')::uuid;
+    target_status := coalesce(item ->> 'attendance_status', 'Compareceu');
+    target_notes := coalesce(nullif(item ->> 'class_notes', ''), target_general_notes, '');
+
+    if target_status not in ('Compareceu', 'Faltou') then
+      raise exception 'Situação inválida para um dos alunos.';
+    end if;
+
+    if not exists (
+      select 1 from public.class_students cs
+      where cs.class_number = target_class_number
+        and cs.user_id = target_user_id
+    ) then
+      raise exception 'Um dos alunos selecionados não pertence a esta turma.';
+    end if;
+
+    insert into public.student_frequency (user_id, class_date, attendance_status, class_notes)
+    values (
+      target_user_id,
+      target_class_date,
+      target_status,
+      '[Turma ' || target_class_number || '] ' || target_notes
+    );
+
+    inserted_count := inserted_count + 1;
+  end loop;
+
+  return jsonb_build_object('ok', true, 'inserted_count', inserted_count);
+end;
+$$;
+
+grant execute on function public.save_teacher_class_attendance(integer, date, text, jsonb) to authenticated;
