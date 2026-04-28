@@ -44,6 +44,7 @@ returns table (
   email text,
   cpf text,
   whatsapp text,
+  pix_key text,
   enrollment_code text,
   enrolled boolean,
   availability jsonb,
@@ -76,6 +77,7 @@ begin
       coalesce(p.email, '')::text as email,
       coalesce(p.cpf, '')::text as cpf,
       coalesce(p.whatsapp, '')::text as whatsapp,
+      coalesce(p.pix_key, '')::text as pix_key,
       coalesce(p.enrollment_code, '')::text as enrollment_code,
       coalesce(p.enrolled, false)::boolean as enrolled,
       coalesce(p.availability::jsonb, '{}'::jsonb) as availability,
@@ -92,6 +94,7 @@ begin
       coalesce(u.email, '')::text as email,
       coalesce(u.raw_user_meta_data ->> 'cpf', '')::text as cpf,
       coalesce(u.raw_user_meta_data ->> 'whatsapp', '')::text as whatsapp,
+      coalesce(u.raw_user_meta_data ->> 'pix_key', '')::text as pix_key,
       coalesce(u.raw_user_meta_data ->> 'enrollment_code', '')::text as enrollment_code,
       coalesce((u.raw_user_meta_data ->> 'enrolled')::boolean, false)::boolean as enrolled,
       coalesce(u.raw_user_meta_data -> 'availability', '{}'::jsonb) as availability,
@@ -119,6 +122,7 @@ begin
     mr.email,
     mr.cpf,
     mr.whatsapp,
+    mr.pix_key,
     mr.enrollment_code,
     mr.enrolled,
     mr.availability,
@@ -149,6 +153,7 @@ declare
   deleted_profile_count integer := 0;
   deleted_frequency_count integer := 0;
   deleted_activity_count integer := 0;
+  deleted_exercise_completion_count integer := 0;
   deleted_auth_count integer := 0;
 begin
   requester_email := auth.jwt() ->> 'email';
@@ -178,6 +183,11 @@ begin
     get diagnostics deleted_activity_count = row_count;
   end if;
 
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'daily_exercise_completion') then
+    delete from public.daily_exercise_completion where user_id = target_user_id;
+    get diagnostics deleted_exercise_completion_count = row_count;
+  end if;
+
   delete from public.profiles where id = target_user_id;
   get diagnostics deleted_profile_count = row_count;
 
@@ -189,6 +199,7 @@ begin
     'deleted_profile_count', deleted_profile_count,
     'deleted_frequency_count', deleted_frequency_count,
     'deleted_activity_count', deleted_activity_count,
+    'deleted_exercise_completion_count', deleted_exercise_completion_count,
     'deleted_auth_count', deleted_auth_count
   );
 end;
