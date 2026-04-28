@@ -4,11 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Matrícula - Teacher Flávio</title>
-  <meta http-equiv="refresh" content="0; url=/matricula.html">
   <link rel="canonical" href="/matricula/">
-  <script>window.location.replace('/matricula.html');</script>
+  <script>
+    (async function () {
+      const response = await fetch('/matricula.html', { cache: 'no-store' });
+      const html = await response.text();
+      document.open();
+      document.write(html.replace('<head>', '<head>\n  <base href="/">'));
+      document.close();
+    })();
+  </script>
 </head>
 <body>
-  <p>Redirecionando para a página de matrícula...</p>
+  <p>Carregando matrícula...</p>
 </body>
 </html>
