@@ -5,9 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Turma - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260428-2"></script>
-  <script src="auth.js?v=20260428-2"></script>
-  <link rel="stylesheet" href="professor.css?v=20260428-2">
+  <script src="supabase_config.js?v=20260428-3"></script>
+  <script src="auth.js?v=20260428-3"></script>
+  <link rel="stylesheet" href="professor.css?v=20260428-3">
+  <style>
+    .class-attendance-row { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+    .class-attendance-row label { display: flex; align-items: center; gap: 10px; color: #f1f5f9; font-weight: bold; margin-bottom: 10px; }
+    .class-attendance-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #818cf8; }
+    .class-attendance-row select, .class-attendance-row textarea, #classDate, #classNotes { width: 100%; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px 13px; color: #f1f5f9; font-size: 14px; font-family: Georgia, serif; margin-top: 8px; }
+    .class-attendance-row textarea, #classNotes { min-height: 76px; resize: vertical; }
+    .class-attendance-help { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 14px; }
+  </style>
 </head>
 <body class="auth-checking">
   <div class="container">
@@ -25,6 +33,23 @@
     <div class="divider"></div>
 
     <div class="panel">
+      <h2>Registrar aula da turma</h2>
+      <p class="class-attendance-help">Selecione os alunos que participaram desta aula, marque se compareceram ou faltaram e registre o que foi feito.</p>
+      <form id="classAttendanceForm">
+        <label for="classDate" style="display:block; color:#cbd5e1; font-size:13px; margin-bottom:6px;">Data da aula</label>
+        <input id="classDate" type="text" inputmode="numeric" maxlength="8" placeholder="DD/MM/AA" pattern="\d{2}/\d{2}/\d{2}" required />
+
+        <label for="classNotes" style="display:block; color:#cbd5e1; font-size:13px; margin:12px 0 6px;">O que foi feito na aula</label>
+        <textarea id="classNotes" placeholder="Ex.: conversação, revisão de simple present, correção de tarefa, leitura em voz alta..."></textarea>
+
+        <div id="attendanceStudentsList" style="margin-top:16px;" class="empty">Carregando alunos da turma...</div>
+
+        <button class="delete-button" type="submit" style="border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">SALVAR FREQUÊNCIA DA AULA</button>
+        <div id="attendanceMessage" class="empty" style="margin-top:10px;"></div>
+      </form>
+    </div>
+
+    <div class="panel">
       <h2>Alunos nesta turma</h2>
       <div id="classStudentsList" class="empty">Carregando alunos da turma...</div>
     </div>
@@ -34,7 +59,7 @@
       <div id="availableStudentsList" class="empty">Carregando alunos matriculados...</div>
     </div>
   </div>
-  <script src="turma.js?v=20260428-2"></script>
-  <script src="animated_cards.js?v=20260428-2"></script>
+  <script src="turma.js?v=20260428-3"></script>
+  <script src="animated_cards.js?v=20260428-3"></script>
 </body>
 </html>
