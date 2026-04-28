@@ -158,8 +158,9 @@ async function renderFrequencyHistory() {
 async function saveFrequency(event) {
   event.preventDefault();
   const message = document.getElementById("formMessage");
+  const wasEditing = !!editingFrequencyId;
   message.className = "empty";
-  message.textContent = editingFrequencyId ? "Salvando alterações..." : "Salvando...";
+  message.textContent = wasEditing ? "Salvando alterações..." : "Salvando...";
 
   try {
     const classDateInput = document.getElementById("classDate").value;
@@ -168,8 +169,8 @@ async function saveFrequency(event) {
     const classNotes = document.getElementById("classNotes").value.trim();
 
     const client = Auth.getClient();
-    const rpcName = editingFrequencyId ? "update_teacher_student_frequency" : "save_teacher_student_frequency";
-    const payload = editingFrequencyId ? {
+    const rpcName = wasEditing ? "update_teacher_student_frequency" : "save_teacher_student_frequency";
+    const payload = wasEditing ? {
       target_frequency_id: editingFrequencyId,
       target_class_date: classDate,
       target_attendance_status: attendanceStatus,
@@ -187,7 +188,7 @@ async function saveFrequency(event) {
     document.getElementById("frequencyForm").reset();
     setFormMode("create");
     message.className = "empty";
-    message.textContent = editingFrequencyId ? "Registro atualizado." : "Registro salvo.";
+    message.textContent = wasEditing ? "Registro atualizado." : "Registro salvo.";
     await renderFrequencyHistory();
   } catch (error) {
     message.className = "error";
