@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Turmas - Teacher Flávio</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js?v=20260428-1"></script>
+  <script src="auth.js?v=20260428-1"></script>
+  <link rel="stylesheet" href="professor.css?v=20260428-1">
+</head>
+<body class="auth-checking">
+  <div class="container">
+    <div class="top-links">
+      <a class="top-link" href="professor.html">ÁREA DO PROFESSOR</a>
+      <a class="top-link" href="index.html">HOME</a>
+    </div>
+
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Turmas</h1>
+      <div id="adminStatus" class="status">Verificando credenciais de professor...</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="classesGrid" class="menu-grid"></div>
+  </div>
+
+  <script>
+    function redirectToLogin() {
+      window.location.href = "login.html?next=" + encodeURIComponent("turmas.html");
+    }
+
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    async function waitForAuthResources() {
+      for (let i = 0; i < 10; i++) {
+        if (window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured()) return true;
+        await sleep(150);
+      }
+      return !!(window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured());
+    }
+
+    function renderClasses() {
+      const grid = document.getElementById("classesGrid");
+      const cards = [];
+      for (let i = 1; i <= 45; i++) {
+        cards.push(
+          '<a class="menu-button" href="#" aria-label="Turma ' + i + '">' +
+            '<span><span class="icon">🏫</span>Turma ' + i + '</span>' +
+            '<span class="arrow">›</span>' +
+          '</a>'
+        );
+      }
+      grid.innerHTML = cards.join("");
+    }
+
+    async function guardPage() {
+      const status = document.getElementById("adminStatus");
+      const resourcesReady = await waitForAuthResources();
+
+      if (!resourcesReady) {
+        status.textContent = "Não foi possível carregar a autenticação. Atualize a página ou limpe o cache do navegador.";
+        document.body.classList.remove("auth-checking");
+        renderClasses();
+        return;
+      }
+
+      const session = await Auth.getSession();
+      if (!session || !session.user) {
+        redirectToLogin();
+        return;
+      }
+
+      status.textContent = "Professor autenticado: " + session.user.email + ".";
+      document.body.classList.remove("auth-checking");
+      renderClasses();
+    }
+
+    guardPage();
+  </script>
+  <script src="animated_cards.js?v=20260428-1"></script>
+</body>
+</html>
