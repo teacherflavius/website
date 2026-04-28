@@ -33,8 +33,37 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function formatDateInput(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 6);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return digits.slice(0, 2) + "/" + digits.slice(2);
+  return digits.slice(0, 2) + "/" + digits.slice(2, 4) + "/" + digits.slice(4);
+}
+
+function parseBrazilianShortDate(value) {
+  const match = String(value || "").match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  if (!match) throw new Error("Informe a data no formato DD/MM/AA.");
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = 2000 + Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    throw new Error("Data inválida. Use o formato DD/MM/AA.");
+  }
+
+  return String(year) + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+}
+
 function isEnrolled(student) {
   return student.enrolled === true || student.enrolled === "true" || !!student.enrollment_code;
+}
+
+function getClassStudents() {
+  return allStudents.filter(function (student) {
+    return classStudentIds.has(student.user_id || student.id);
+  });
 }
 
 async function loadStudents() {
@@ -110,6 +139,34 @@ function renderStudentCard(student, action) {
   '</div>';
 }
 
+function renderAttendanceStudents() {
+  const list = document.getElementById("attendanceStudentsList");
+  if (!list) return;
+
+  const classStudents = getClassStudents();
+  if (!classStudents.length) {
+    list.className = "empty";
+    list.textContent = "Adicione alunos à turma antes de registrar uma aula.";
+    return;
+  }
+
+  list.className = "";
+  list.innerHTML = classStudents.map(function (student) {
+    const userId = escapeHtml(student.user_id || student.id);
+    const name = escapeHtml(student.name || student.email || "Aluno sem nome");
+    const email = escapeHtml(student.email || "Não informado");
+    return '<div class="class-attendance-row">' +
+      '<label><input type="checkbox" class="attendance-student-check" data-user-id="' + userId + '" checked />' + name + '</label>' +
+      '<p style="color:#94a3b8; font-size:13px; margin-bottom:8px;"><b>E-mail:</b> ' + email + '</p>' +
+      '<select class="attendance-status" data-user-id="' + userId + '">' +
+        '<option value="Compareceu">Compareceu</option>' +
+        '<option value="Faltou">Faltou</option>' +
+      '</select>' +
+      '<textarea class="attendance-notes" data-user-id="' + userId + '" placeholder="Observação individual opcional para este aluno..."></textarea>' +
+    '</div>';
+  }).join("");
+}
+
 function attachClassButtons() {
   document.querySelectorAll(".add-class-student").forEach(function (button) {
     button.addEventListener("click", function () {
@@ -128,10 +185,7 @@ function renderLists() {
   const classList = document.getElementById("classStudentsList");
   const availableList = document.getElementById("availableStudentsList");
 
-  const classStudents = allStudents.filter(function (student) {
-    return classStudentIds.has(student.user_id || student.id);
-  });
-
+  const classStudents = getClassStudents();
   const availableStudents = allStudents.filter(function (student) {
     return !classStudentIds.has(student.user_id || student.id);
   });
@@ -156,6 +210,7 @@ function renderLists() {
     }).join("");
   }
 
+  renderAttendanceStudents();
   attachClassButtons();
 }
 
@@ -163,6 +218,52 @@ async function refreshLists() {
   const classRows = await loadClassStudents();
   classStudentIds = new Set(classRows.map(function (row) { return row.user_id; }));
   renderLists();
+}
+
+async function saveClassAttendance(event) {
+  event.preventDefault();
+  const message = document.getElementById("attendanceMessage");
+  message.className = "empty";
+  message.textContent = "Salvando frequência...";
+
+  try {
+    const classDate = parseBrazilianShortDate(document.getElementById("classDate").value);
+    const generalNotes = document.getElementById("classNotes").value.trim();
+    const selectedChecks = Array.from(document.querySelectorAll(".attendance-student-check:checked"));
+
+    if (!selectedChecks.length) {
+      throw new Error("Selecione pelo menos um aluno para registrar a aula.");
+    }
+
+    const attendanceRecords = selectedChecks.map(function (checkbox) {
+      const userId = checkbox.dataset.userId;
+      const statusInput = document.querySelector('.attendance-status[data-user-id="' + userId + '"]');
+      const notesInput = document.querySelector('.attendance-notes[data-user-id="' + userId + '"]');
+      return {
+        user_id: userId,
+        attendance_status: statusInput ? statusInput.value : "Compareceu",
+        class_notes: notesInput && notesInput.value.trim() ? notesInput.value.trim() : generalNotes
+      };
+    });
+
+    const client = Auth.getClient();
+    const response = await client.rpc("save_teacher_class_attendance", {
+      target_class_number: currentClassNumber,
+      target_class_date: classDate,
+      target_general_notes: generalNotes,
+      attendance_records: attendanceRecords
+    });
+
+    if (response.error) throw response.error;
+
+    document.getElementById("classAttendanceForm").reset();
+    renderAttendanceStudents();
+    message.className = "empty";
+    message.textContent = "Frequência da aula salva.";
+  } catch (error) {
+    message.className = "error";
+    message.textContent = error.message || "Não foi possível salvar a frequência.";
+  }
 }
 
 async function guardPage() {
@@ -201,5 +302,15 @@ async function guardPage() {
     document.body.classList.remove("auth-checking");
   }
 }
+
+const classDateInput = document.getElementById("classDate");
+if (classDateInput) {
+  classDateInput.addEventListener("input", function () {
+    this.value = formatDateInput(this.value);
+  });
+}
+
+const classAttendanceForm = document.getElementById("classAttendanceForm");
+if (classAttendanceForm) classAttendanceForm.addEventListener("submit", saveClassAttendance);
 
 guardPage();
