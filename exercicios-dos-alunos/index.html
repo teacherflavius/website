@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exercícios dos Alunos - Teacher Flávio</title>
+  <link rel="canonical" href="/exercicios-dos-alunos/">
+  <script>
+    (async function () {
+      const response = await fetch('/exercicios_dos_alunos.html', { cache: 'no-store' });
+      const html = await response.text();
+      document.open();
+      document.write(html.replace('<head>', '<head>\n  <base href="/">'));
+      document.close();
+    })();
+  </script>
+</head>
+<body>
+  <p>Carregando exercícios dos alunos...</p>
+</body>
+</html>
