@@ -1,0 +1,157 @@
+let currentProfessorSession = null;
+
+function redirectToLogin() {
+  window.location.href = "login.html?next=" + encodeURIComponent("perfil_dos_alunos.html");
+}
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+async function waitForAuthResources() {
+  for (let i = 0; i < 10; i++) {
+    if (window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured()) return true;
+    await sleep(150);
+  }
+  return !!(window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured());
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function isEnrolled(student) {
+  return student.enrolled === true || student.enrolled === "true" || !!student.enrollment_code;
+}
+
+function formatCpf(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length !== 11) return value || "Não informado";
+  return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+}
+
+function formatWhatsapp(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "Não informado";
+  if (digits.length === 11) return digits.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+  if (digits.length === 10) return digits.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  return value || digits;
+}
+
+function formatAvailability(profile) {
+  const days = [
+    ["seg", "Segunda"],
+    ["ter", "Terça"],
+    ["qua", "Quarta"],
+    ["qui", "Quinta"],
+    ["sex", "Sexta"]
+  ];
+  const hourLabels = {
+    "09": "9h - 10h",
+    "10": "10h - 11h",
+    "12": "12h - 13h",
+    "13": "13h - 14h",
+    "15": "15h - 16h",
+    "17": "17h - 18h",
+    "18": "18h - 19h",
+    "20": "20h - 21h",
+    "21": "21h - 22h"
+  };
+  const availability = profile.availability || {};
+  const parts = days.map(function (day) {
+    const values = Array.isArray(availability[day[0]]) ? availability[day[0]] : [];
+    if (!values.length) return "";
+    return '<p><b>' + day[1] + ':</b> ' + values.map(function (hour) {
+      return escapeHtml(hourLabels[hour] || hour);
+    }).join(", ") + '</p>';
+  }).filter(Boolean);
+  return parts.length ? parts.join("") : '<p>Não informado</p>';
+}
+
+function formatCreatedAt(value) {
+  if (!value) return "Não informado";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+async function loadStudents() {
+  const client = Auth.getClient();
+  const response = await client.rpc("get_teacher_students");
+  if (response.error) throw response.error;
+  return response.data || [];
+}
+
+function renderProfileCard(student) {
+  const enrolled = isEnrolled(student);
+  return '<div class="student-card">' +
+    '<strong>' + escapeHtml(student.name || "Aluno sem nome") +
+      '<span class="pill ' + (enrolled ? '' : 'pending') + '">' + (enrolled ? 'Matriculado' : 'Cadastro sem matrícula confirmada') + '</span>' +
+    '</strong>' +
+    '<p><b>Número de matrícula:</b> ' + escapeHtml(student.enrollment_code || "Não informado") + '</p>' +
+    '<p><b>Nome completo:</b> ' + escapeHtml(student.name || "Não informado") + '</p>' +
+    '<p><b>E-mail:</b> ' + escapeHtml(student.email || "Não informado") + '</p>' +
+    '<p><b>CPF:</b> ' + escapeHtml(formatCpf(student.cpf)) + '</p>' +
+    '<p><b>WhatsApp:</b> ' + escapeHtml(formatWhatsapp(student.whatsapp)) + '</p>' +
+    '<p><b>Chave PIX:</b> ' + escapeHtml(student.pix_key || "Não informado") + '</p>' +
+    '<p><b>ID do usuário:</b> ' + escapeHtml(student.user_id || student.id || "Não informado") + '</p>' +
+    '<p><b>Origem do registro:</b> ' + escapeHtml(student.source || "Não informado") + '</p>' +
+    '<p><b>Criado em:</b> ' + escapeHtml(formatCreatedAt(student.created_at)) + '</p>' +
+    '<div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08);">' +
+      '<p><b>Disponibilidade para aulas:</b></p>' +
+      formatAvailability(student) +
+    '</div>' +
+  '</div>';
+}
+
+async function renderStudentProfiles() {
+  const list = document.getElementById("studentProfilesList");
+  try {
+    const students = await loadStudents();
+    const enrolledStudents = students.filter(isEnrolled);
+
+    if (!enrolledStudents.length) {
+      list.className = "empty";
+      list.textContent = "Nenhum aluno matriculado encontrado.";
+      return;
+    }
+
+    list.className = "";
+    list.innerHTML = enrolledStudents.map(renderProfileCard).join("");
+  } catch (error) {
+    list.className = "error";
+    list.textContent = "Não foi possível carregar os perfis dos alunos: " + (error.message || "erro desconhecido") + ". Reexecute o arquivo supabase_professor_admin.sql no Supabase.";
+  }
+}
+
+async function guardPage() {
+  const status = document.getElementById("adminStatus");
+  const resourcesReady = await waitForAuthResources();
+
+  if (!resourcesReady) {
+    status.textContent = "Não foi possível carregar a autenticação. Atualize a página ou limpe o cache do navegador.";
+    document.body.classList.remove("auth-checking");
+    return;
+  }
+
+  currentProfessorSession = await Auth.getSession();
+  if (!currentProfessorSession || !currentProfessorSession.user) {
+    redirectToLogin();
+    return;
+  }
+
+  status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
+  document.body.classList.remove("auth-checking");
+  await renderStudentProfiles();
+}
+
+guardPage();
