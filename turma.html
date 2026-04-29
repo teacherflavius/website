@@ -5,16 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Turma - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260428-3"></script>
-  <script src="auth.js?v=20260428-3"></script>
-  <link rel="stylesheet" href="professor.css?v=20260428-3">
+  <script src="supabase_config.js?v=20260428-4"></script>
+  <script src="auth.js?v=20260428-4"></script>
+  <link rel="stylesheet" href="professor.css?v=20260428-4">
   <style>
     .class-attendance-row { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
     .class-attendance-row label { display: flex; align-items: center; gap: 10px; color: #f1f5f9; font-weight: bold; margin-bottom: 10px; }
     .class-attendance-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #818cf8; }
-    .class-attendance-row select, .class-attendance-row textarea, #classDate, #classNotes { width: 100%; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px 13px; color: #f1f5f9; font-size: 14px; font-family: Georgia, serif; margin-top: 8px; }
+    .class-attendance-row select, .class-attendance-row textarea, #classDate, #classNotes, #videoLessonUrl, #lessonMaterialUrl, #whatsappGroupUrl { width: 100%; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px 13px; color: #f1f5f9; font-size: 14px; font-family: Georgia, serif; margin-top: 8px; }
     .class-attendance-row textarea, #classNotes { min-height: 76px; resize: vertical; }
     .class-attendance-help { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 14px; }
+    .class-resource-label { display:block; color:#cbd5e1; font-size:13px; margin:12px 0 6px; }
   </style>
 </head>
 <body class="auth-checking">
@@ -31,6 +32,24 @@
     </div>
 
     <div class="divider"></div>
+
+    <div class="panel">
+      <h2>Links da turma</h2>
+      <p class="class-attendance-help">Insira os links que os alunos desta turma verão em Minha Turma, na área do estudante.</p>
+      <form id="classResourcesForm">
+        <label class="class-resource-label" for="videoLessonUrl">Link da videoaula</label>
+        <input id="videoLessonUrl" type="url" placeholder="https://..." />
+
+        <label class="class-resource-label" for="lessonMaterialUrl">Link do material da aula</label>
+        <input id="lessonMaterialUrl" type="url" placeholder="https://..." />
+
+        <label class="class-resource-label" for="whatsappGroupUrl">Link do grupo de WhatsApp da turma</label>
+        <input id="whatsappGroupUrl" type="url" placeholder="https://chat.whatsapp.com/..." />
+
+        <button class="delete-button" type="submit" style="border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">SALVAR LINKS DA TURMA</button>
+        <div id="classResourcesMessage" class="empty" style="margin-top:10px;"></div>
+      </form>
+    </div>
 
     <div class="panel">
       <h2>Registrar aula da turma</h2>
@@ -59,7 +78,7 @@
       <div id="availableStudentsList" class="empty">Carregando alunos matriculados...</div>
     </div>
   </div>
-  <script src="turma.js?v=20260428-3"></script>
-  <script src="animated_cards.js?v=20260428-3"></script>
+  <script src="turma.js?v=20260428-4"></script>
+  <script src="animated_cards.js?v=20260428-4"></script>
 </body>
 </html>
