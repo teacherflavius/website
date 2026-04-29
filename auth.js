@@ -4,13 +4,13 @@
       if (!document.querySelector('link[href^="animated_cards.css"]')) {
         const link = document.createElement("link");
         link.rel = "stylesheet";
-        link.href = "animated_cards.css?v=20260427-3";
+        link.href = "animated_cards.css?v=20260429-6";
         document.head.appendChild(link);
       }
 
       if (!document.querySelector('script[src^="animated_cards.js"]')) {
         const script = document.createElement("script");
-        script.src = "animated_cards.js?v=20260427-3";
+        script.src = "animated_cards.js?v=20260429-6";
         script.defer = true;
         document.body.appendChild(script);
       }
@@ -48,7 +48,7 @@
   }
 
   function getRedirectUrl() {
-    return new URL("login.html", window.location.href).href;
+    return "https://teacherflavius.com/login/";
   }
 
   function showConfigWarning() {
@@ -75,23 +75,13 @@
   function generateEnrollmentCode() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code = "";
-    for (let i = 0; i < 5; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
-    }
+    for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
     return code;
   }
 
-  function normalizeCpf(cpf) {
-    return String(cpf || "").replace(/\D/g, "");
-  }
-
-  function normalizeWhatsapp(whatsapp) {
-    return String(whatsapp || "").replace(/\D/g, "");
-  }
-
-  function normalizePixKey(pixKey) {
-    return String(pixKey || "").trim();
-  }
+  function normalizeCpf(cpf) { return String(cpf || "").replace(/\D/g, ""); }
+  function normalizeWhatsapp(whatsapp) { return String(whatsapp || "").replace(/\D/g, ""); }
+  function normalizePixKey(pixKey) { return String(pixKey || "").trim(); }
 
   function normalizeAvailability(availability) {
     const days = ["seg", "ter", "qua", "qui", "sex"];
@@ -99,9 +89,7 @@
     const normalized = {};
     days.forEach(function (day) {
       const selected = Array.isArray(availability && availability[day]) ? availability[day] : [];
-      normalized[day] = selected.filter(function (hour) {
-        return hours.includes(hour);
-      });
+      normalized[day] = selected.filter(function (hour) { return hours.includes(hour); });
     });
     return normalized;
   }
@@ -158,18 +146,11 @@
     const response = await client.auth.signUp({
       email: email,
       password: password,
-      options: {
-        data: { name: name },
-        emailRedirectTo: getRedirectUrl()
-      }
+      options: { data: { name: name }, emailRedirectTo: getRedirectUrl() }
     });
     if (response.error) throw response.error;
     if (response.data && response.data.user) {
-      await client.from("profiles").upsert({
-        id: response.data.user.id,
-        name: name,
-        email: email
-      });
+      await client.from("profiles").upsert({ id: response.data.user.id, name: name, email: email });
     }
     return response.data;
   }
@@ -185,14 +166,10 @@
     const availability = normalizeAvailability(data.availability);
     const availabilityColumns = availabilityToProfileColumns(availability);
 
-    if (!data.name || !data.email || !data.password || !cleanCpf || !cleanWhatsapp || !pixKey) {
-      throw new Error("Preencha todos os campos da matrícula.");
-    }
+    if (!data.name || !data.email || !data.password || !cleanCpf || !cleanWhatsapp || !pixKey) throw new Error("Preencha todos os campos da matrícula.");
     if (cleanCpf.length !== 11) throw new Error("CPF inválido. Informe 11 dígitos.");
     if (cleanWhatsapp.length < 10) throw new Error("WhatsApp inválido.");
-    if (countAvailabilitySlots(availability) === 0) {
-      throw new Error("Selecione pelo menos um horário disponível para aulas durante a semana.");
-    }
+    if (countAvailabilitySlots(availability) === 0) throw new Error("Selecione pelo menos um horário disponível para aulas durante a semana.");
 
     const enrollmentMetadata = {
       name: data.name,
@@ -207,10 +184,7 @@
     const response = await client.auth.signUp({
       email: data.email,
       password: data.password,
-      options: {
-        data: enrollmentMetadata,
-        emailRedirectTo: getRedirectUrl()
-      }
+      options: { data: enrollmentMetadata, emailRedirectTo: getRedirectUrl() }
     });
     if (response.error) throw response.error;
 
@@ -229,15 +203,10 @@
       }, availabilityColumns);
 
       const profileResponse = await client.from("profiles").upsert(profilePayload).select().single();
-      if (profileResponse.error) {
-        console.warn("Não foi possível atualizar profiles com os dados de matrícula:", profileResponse.error.message);
-      }
+      if (profileResponse.error) console.warn("Não foi possível atualizar profiles com os dados de matrícula:", profileResponse.error.message);
     }
 
-    return {
-      user: response.data ? response.data.user : null,
-      enrollment_code: enrollmentCode
-    };
+    return { user: response.data ? response.data.user : null, enrollment_code: enrollmentCode };
   }
 
   async function signIn(email, password) {
@@ -286,14 +255,10 @@
     const availability = normalizeAvailability(data.availability);
     const availabilityColumns = availabilityToProfileColumns(availability);
 
-    if (!data.name || !cleanCpf || !cleanWhatsapp || !pixKey) {
-      throw new Error("Preencha nome, CPF, WhatsApp e chave PIX.");
-    }
+    if (!data.name || !cleanCpf || !cleanWhatsapp || !pixKey) throw new Error("Preencha nome, CPF, WhatsApp e chave PIX.");
     if (cleanCpf.length !== 11) throw new Error("CPF inválido. Informe 11 dígitos.");
     if (cleanWhatsapp.length < 10) throw new Error("WhatsApp inválido.");
-    if (countAvailabilitySlots(availability) === 0) {
-      throw new Error("Selecione pelo menos um horário disponível para aulas durante a semana.");
-    }
+    if (countAvailabilitySlots(availability) === 0) throw new Error("Selecione pelo menos um horário disponível para aulas durante a semana.");
 
     const currentProfile = await getProfile();
     const profilePayload = Object.assign({
@@ -352,11 +317,7 @@
     const client = getClient();
     const user = await getUser();
     if (!client || !user) return [];
-    const response = await client
-      .from("activity_results")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("completed_at", { ascending: false });
+    const response = await client.from("activity_results").select("*").eq("user_id", user.id).order("completed_at", { ascending: false });
     if (response.error) return [];
     return response.data || [];
   }
