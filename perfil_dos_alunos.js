@@ -30,6 +30,11 @@ function isEnrolled(student) {
   return student.enrolled === true || student.enrolled === "true" || !!student.enrollment_code;
 }
 
+function updateStudentCount(count) {
+  const countEl = document.getElementById("studentCountNumber");
+  if (countEl) countEl.textContent = String(count || 0);
+}
+
 function formatCpf(value) {
   const digits = String(value || "").replace(/\D/g, "");
   if (digits.length !== 11) return value || "Não informado";
@@ -250,6 +255,7 @@ async function renderStudentProfiles() {
   try {
     const students = await loadStudents();
     const enrolledStudents = students.filter(isEnrolled);
+    updateStudentCount(enrolledStudents.length);
     if (!enrolledStudents.length) {
       list.className = "empty";
       list.textContent = "Nenhum aluno matriculado encontrado.";
@@ -259,6 +265,7 @@ async function renderStudentProfiles() {
     list.innerHTML = enrolledStudents.map(renderProfileCard).join("");
     attachActionButtons();
   } catch (error) {
+    updateStudentCount(0);
     list.className = "error";
     list.textContent = "Não foi possível carregar os perfis dos alunos: " + (error.message || "erro desconhecido") + ". Reexecute o arquivo supabase_professor_admin.sql no Supabase.";
   }
