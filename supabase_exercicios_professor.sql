@@ -9,12 +9,19 @@ create table if not exists public.teacher_exercises (
   exercise_url text not null,
   created_by uuid references auth.users(id) on delete set null,
   is_active boolean not null default true,
+  scheduled_publish_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+alter table public.teacher_exercises
+  add column if not exists scheduled_publish_at timestamptz;
+
 create index if not exists teacher_exercises_created_at_idx
   on public.teacher_exercises(created_at desc);
+
+create index if not exists teacher_exercises_scheduled_publish_at_idx
+  on public.teacher_exercises(scheduled_publish_at desc);
 
 alter table public.teacher_exercises enable row level security;
 
@@ -41,7 +48,11 @@ drop policy if exists "Alunos autenticados podem visualizar exercícios ativos" 
 create policy "Alunos autenticados podem visualizar exercícios ativos"
   on public.teacher_exercises
   for select
-  using (auth.uid() is not null and is_active = true);
+  using (
+    auth.uid() is not null
+    and is_active = true
+    and (scheduled_publish_at is null or scheduled_publish_at <= now())
+  );
 
 create or replace function public.set_teacher_exercises_updated_at()
 returns trigger as $$
@@ -57,10 +68,15 @@ before update on public.teacher_exercises
 for each row
 execute function public.set_teacher_exercises_updated_at();
 
-create or replace function public.create_teacher_exercise(
+-- Necessário porque a assinatura da função mudou para incluir target_scheduled_publish_at.
+drop function if exists public.create_teacher_exercise(text, text, text);
+drop function if exists public.create_teacher_exercise(text, text, text, timestamptz);
+
+create function public.create_teacher_exercise(
   target_exercise_id text,
   target_exercise_title text,
-  target_exercise_url text
+  target_exercise_url text,
+  target_scheduled_publish_at timestamptz default null
 )
 returns jsonb
 language plpgsql
@@ -87,30 +103,36 @@ begin
     exercise_title,
     exercise_url,
     created_by,
-    is_active
+    is_active,
+    scheduled_publish_at
   )
   values (
     target_exercise_id,
     trim(target_exercise_title),
     trim(target_exercise_url),
     auth.uid(),
-    true
+    true,
+    target_scheduled_publish_at
   )
   returning id into new_id;
 
-  return jsonb_build_object('ok', true, 'id', new_id);
+  return jsonb_build_object('ok', true, 'id', new_id, 'scheduled_publish_at', target_scheduled_publish_at);
 end;
 $$;
 
-grant execute on function public.create_teacher_exercise(text, text, text) to authenticated;
+grant execute on function public.create_teacher_exercise(text, text, text, timestamptz) to authenticated;
 
-create or replace function public.get_teacher_created_exercises()
+-- Necessário porque a estrutura de retorno mudou para incluir scheduled_publish_at.
+drop function if exists public.get_teacher_created_exercises();
+
+create function public.get_teacher_created_exercises()
 returns table (
   id text,
   exercise_id text,
   exercise_title text,
   exercise_url text,
   is_active boolean,
+  scheduled_publish_at timestamptz,
   created_at timestamptz,
   updated_at timestamptz
 )
@@ -130,20 +152,25 @@ begin
     te.exercise_title,
     te.exercise_url,
     te.is_active,
+    te.scheduled_publish_at,
     te.created_at,
     te.updated_at
   from public.teacher_exercises te
-  order by te.created_at desc;
+  order by coalesce(te.scheduled_publish_at, te.created_at) desc, te.created_at desc;
 end;
 $$;
 
 grant execute on function public.get_teacher_created_exercises() to authenticated;
 
-create or replace function public.get_public_teacher_exercises()
+-- Necessário porque a estrutura e o filtro de retorno mudaram.
+drop function if exists public.get_public_teacher_exercises();
+
+create function public.get_public_teacher_exercises()
 returns table (
   exercise_id text,
   exercise_title text,
   exercise_url text,
+  scheduled_publish_at timestamptz,
   created_at timestamptz
 )
 language sql
@@ -154,10 +181,12 @@ as $$
     te.exercise_id,
     te.exercise_title,
     te.exercise_url,
+    te.scheduled_publish_at,
     te.created_at
   from public.teacher_exercises te
   where te.is_active = true
-  order by te.created_at desc;
+    and (te.scheduled_publish_at is null or te.scheduled_publish_at <= now())
+  order by coalesce(te.scheduled_publish_at, te.created_at) desc, te.created_at desc;
 $$;
 
 grant execute on function public.get_public_teacher_exercises() to authenticated;
