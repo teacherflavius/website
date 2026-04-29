@@ -36,7 +36,7 @@ function renderClassCard(classItem) {
   const studentCount = Number(classItem.student_count || 0);
 
   return '<div class="class-card">' +
-    '<div class="class-card-title"><span><span class="icon">🏫</span>' + escapeHtml(className) + '</span><span>Turma ' + escapeHtml(classNumber) + '</span></div>' +
+    '<div class="class-card-title"><span><span class="icon">🏫</span>' + escapeHtml(className) + '</span></div>' +
     '<p style="color:#94a3b8; font-size:13px; line-height:1.5;">Alunos inscritos: ' + studentCount + '</p>' +
     '<div class="class-actions">' +
       '<a class="open-class-button" href="turma.html?id=' + encodeURIComponent(classNumber) + '">ABRIR TURMA</a>' +
