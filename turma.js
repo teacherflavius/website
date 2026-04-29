@@ -80,6 +80,55 @@ async function loadClassStudents() {
   return response.data || [];
 }
 
+async function loadClassResources() {
+  const client = Auth.getClient();
+  const response = await client.rpc("get_teacher_class_resources", { target_class_number: currentClassNumber });
+  if (response.error) throw response.error;
+  return response.data && response.data.length ? response.data[0] : null;
+}
+
+async function renderClassResources() {
+  const message = document.getElementById("classResourcesMessage");
+  try {
+    const resources = await loadClassResources();
+    document.getElementById("videoLessonUrl").value = resources && resources.video_lesson_url ? resources.video_lesson_url : "";
+    document.getElementById("lessonMaterialUrl").value = resources && resources.lesson_material_url ? resources.lesson_material_url : "";
+    document.getElementById("whatsappGroupUrl").value = resources && resources.whatsapp_group_url ? resources.whatsapp_group_url : "";
+    if (message) {
+      message.className = "empty";
+      message.textContent = resources ? "Links carregados." : "Nenhum link cadastrado para esta turma.";
+    }
+  } catch (error) {
+    if (message) {
+      message.className = "error";
+      message.textContent = "Não foi possível carregar os links da turma. Reexecute supabase_turmas.sql no Supabase.";
+    }
+  }
+}
+
+async function saveClassResources(event) {
+  event.preventDefault();
+  const message = document.getElementById("classResourcesMessage");
+  message.className = "empty";
+  message.textContent = "Salvando links...";
+
+  try {
+    const client = Auth.getClient();
+    const response = await client.rpc("save_teacher_class_resources", {
+      target_class_number: currentClassNumber,
+      target_video_lesson_url: document.getElementById("videoLessonUrl").value.trim(),
+      target_lesson_material_url: document.getElementById("lessonMaterialUrl").value.trim(),
+      target_whatsapp_group_url: document.getElementById("whatsappGroupUrl").value.trim()
+    });
+    if (response.error) throw response.error;
+    message.className = "empty";
+    message.textContent = "Links da turma salvos.";
+  } catch (error) {
+    message.className = "error";
+    message.textContent = "Não foi possível salvar os links: " + (error.message || "erro desconhecido") + ". Reexecute supabase_turmas.sql no Supabase.";
+  }
+}
+
 async function addStudentToClass(userId, button) {
   button.disabled = true;
   button.textContent = "ADICIONANDO...";
@@ -295,6 +344,7 @@ async function guardPage() {
   try {
     status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
     allStudents = await loadStudents();
+    await renderClassResources();
     await refreshLists();
     document.body.classList.remove("auth-checking");
   } catch (error) {
@@ -309,6 +359,9 @@ if (classDateInput) {
     this.value = formatDateInput(this.value);
   });
 }
+
+const classResourcesForm = document.getElementById("classResourcesForm");
+if (classResourcesForm) classResourcesForm.addEventListener("submit", saveClassResources);
 
 const classAttendanceForm = document.getElementById("classAttendanceForm");
 if (classAttendanceForm) classAttendanceForm.addEventListener("submit", saveClassAttendance);
