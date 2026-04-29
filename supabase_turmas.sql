@@ -10,6 +10,16 @@ create table if not exists public.class_students (
   unique (class_number, user_id)
 );
 
+create table if not exists public.class_resources (
+  id uuid primary key default gen_random_uuid(),
+  class_number integer not null unique check (class_number between 1 and 45),
+  video_lesson_url text,
+  lesson_material_url text,
+  whatsapp_group_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists class_students_class_number_idx
   on public.class_students(class_number);
 
@@ -17,6 +27,7 @@ create index if not exists class_students_user_id_idx
   on public.class_students(user_id);
 
 alter table public.class_students enable row level security;
+alter table public.class_resources enable row level security;
 
 create table if not exists public.student_frequency (
   id uuid primary key default gen_random_uuid(),
@@ -56,6 +67,39 @@ create policy "Alunos podem visualizar sua própria turma"
   on public.class_students
   for select
   using (auth.uid() = user_id);
+
+drop policy if exists "Professores podem gerenciar links das turmas" on public.class_resources;
+create policy "Professores podem gerenciar links das turmas"
+  on public.class_resources
+  for all
+  using (public.is_teacher_admin())
+  with check (public.is_teacher_admin());
+
+drop policy if exists "Alunos podem visualizar links da própria turma" on public.class_resources;
+create policy "Alunos podem visualizar links da própria turma"
+  on public.class_resources
+  for select
+  using (
+    exists (
+      select 1 from public.class_students cs
+      where cs.class_number = class_resources.class_number
+        and cs.user_id = auth.uid()
+    )
+  );
+
+create or replace function public.set_class_resources_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists set_class_resources_updated_at on public.class_resources;
+create trigger set_class_resources_updated_at
+before update on public.class_resources
+for each row
+execute function public.set_class_resources_updated_at();
 
 create or replace function public.get_teacher_class_students(target_class_number integer)
 returns table (
@@ -99,6 +143,85 @@ $$;
 
 grant execute on function public.get_teacher_class_students(integer) to authenticated;
 
+create or replace function public.get_teacher_class_resources(target_class_number integer)
+returns table (
+  class_number integer,
+  video_lesson_url text,
+  lesson_material_url text,
+  whatsapp_group_url text,
+  updated_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_teacher_admin() then
+    raise exception 'Acesso negado: usuário não cadastrado como professor.';
+  end if;
+
+  if target_class_number < 1 or target_class_number > 45 then
+    raise exception 'Turma inválida. Use um número entre 1 e 45.';
+  end if;
+
+  return query
+  select
+    cr.class_number,
+    coalesce(cr.video_lesson_url, '')::text,
+    coalesce(cr.lesson_material_url, '')::text,
+    coalesce(cr.whatsapp_group_url, '')::text,
+    cr.updated_at
+  from public.class_resources cr
+  where cr.class_number = target_class_number;
+end;
+$$;
+
+grant execute on function public.get_teacher_class_resources(integer) to authenticated;
+
+create or replace function public.save_teacher_class_resources(
+  target_class_number integer,
+  target_video_lesson_url text,
+  target_lesson_material_url text,
+  target_whatsapp_group_url text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_teacher_admin() then
+    raise exception 'Acesso negado: usuário não cadastrado como professor.';
+  end if;
+
+  if target_class_number < 1 or target_class_number > 45 then
+    raise exception 'Turma inválida. Use um número entre 1 e 45.';
+  end if;
+
+  insert into public.class_resources (
+    class_number,
+    video_lesson_url,
+    lesson_material_url,
+    whatsapp_group_url
+  )
+  values (
+    target_class_number,
+    nullif(target_video_lesson_url, ''),
+    nullif(target_lesson_material_url, ''),
+    nullif(target_whatsapp_group_url, '')
+  )
+  on conflict (class_number) do update
+  set
+    video_lesson_url = excluded.video_lesson_url,
+    lesson_material_url = excluded.lesson_material_url,
+    whatsapp_group_url = excluded.whatsapp_group_url;
+
+  return jsonb_build_object('ok', true, 'class_number', target_class_number);
+end;
+$$;
+
+grant execute on function public.save_teacher_class_resources(integer, text, text, text) to authenticated;
+
 create or replace function public.get_my_student_class()
 returns table (
   id text,
@@ -107,6 +230,9 @@ returns table (
   student_name text,
   student_email text,
   enrollment_code text,
+  video_lesson_url text,
+  lesson_material_url text,
+  whatsapp_group_url text,
   created_at timestamptz
 )
 language plpgsql
@@ -122,10 +248,14 @@ begin
     coalesce(p.name, u.raw_user_meta_data ->> 'name', u.email, 'Aluno sem nome')::text as student_name,
     coalesce(p.email, u.email, '')::text as student_email,
     coalesce(p.enrollment_code, u.raw_user_meta_data ->> 'enrollment_code', '')::text as enrollment_code,
+    coalesce(cr.video_lesson_url, '')::text as video_lesson_url,
+    coalesce(cr.lesson_material_url, '')::text as lesson_material_url,
+    coalesce(cr.whatsapp_group_url, '')::text as whatsapp_group_url,
     cs.created_at
   from public.class_students cs
   left join public.profiles p on p.id = cs.user_id
   left join auth.users u on u.id = cs.user_id
+  left join public.class_resources cr on cr.class_number = cs.class_number
   where cs.user_id = auth.uid()
   order by cs.created_at desc;
 end;
