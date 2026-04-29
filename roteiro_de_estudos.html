@@ -250,7 +250,7 @@
 
       try {
         await loadCompletedLessons();
-        setStatus("Aluno conectado: " + currentUser.email + ". Clique em uma lição para abrir o material; use o botão para marcar ou desmarcar como feita.");
+        setStatus("Aluno conectado: " + currentUser.email + ".");
       } catch (error) {
         setStatus("Não foi possível carregar seus registros. Execute supabase_roteiro_de_estudos.sql no Supabase.");
       }
