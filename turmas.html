@@ -5,9 +5,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Turmas - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260428-1"></script>
-  <script src="auth.js?v=20260428-1"></script>
-  <link rel="stylesheet" href="professor.css?v=20260428-1">
+  <script src="supabase_config.js?v=20260429-1"></script>
+  <script src="auth.js?v=20260429-1"></script>
+  <link rel="stylesheet" href="professor.css?v=20260429-1">
+  <style>
+    .form-panel {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      margin-bottom: 22px;
+    }
+    .form-panel label { display:block; color:#cbd5e1; font-size:13px; margin:12px 0 6px; }
+    .form-panel input {
+      width:100%;
+      background:rgba(255,255,255,0.06);
+      border:1.5px solid rgba(255,255,255,0.12);
+      border-radius:12px;
+      padding:12px 13px;
+      color:#f1f5f9;
+      font-size:14px;
+      font-family:Georgia, serif;
+    }
+    .form-panel input:focus { outline:none; border-color:#818cf8; }
+    .class-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      backdrop-filter: blur(12px);
+    }
+    .class-card-title {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      color:#f1f5f9;
+      font-weight:bold;
+      font-size:17px;
+      text-decoration:none;
+    }
+    .class-actions { display:grid; grid-template-columns:1fr; gap:10px; }
+    .open-class-button, .remove-class-button {
+      width:100%;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:12px;
+      padding:11px 13px;
+      font-family:Georgia, serif;
+      font-weight:bold;
+      cursor:pointer;
+      text-decoration:none;
+      font-size:13px;
+    }
+    .open-class-button { border:1.5px solid rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd; }
+    .remove-class-button { border:1.5px solid rgba(248,113,113,0.45); background:rgba(248,113,113,0.08); color:#fca5a5; }
+    .remove-class-button:disabled { opacity:0.65; cursor:not-allowed; }
+    @media (min-width: 680px) { .class-actions { grid-template-columns:1fr 1fr; } }
+  </style>
 </head>
 <body class="auth-checking">
   <div class="container">
@@ -24,62 +84,20 @@
 
     <div class="divider"></div>
 
+    <div class="form-panel">
+      <h2>Criar nova turma</h2>
+      <form id="createClassForm">
+        <label for="className">Nome da turma</label>
+        <input id="className" type="text" placeholder="Ex.: Turma A1 - Terça e Quinta" />
+        <button class="delete-button" type="submit" style="border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">CRIAR TURMA</button>
+        <div id="classMessage" class="empty" style="margin-top:10px;"></div>
+      </form>
+    </div>
+
     <div id="classesGrid" class="menu-grid"></div>
   </div>
 
-  <script>
-    function redirectToLogin() {
-      window.location.href = "login.html?next=" + encodeURIComponent("turmas.html");
-    }
-
-    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-    async function waitForAuthResources() {
-      for (let i = 0; i < 10; i++) {
-        if (window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured()) return true;
-        await sleep(150);
-      }
-      return !!(window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured());
-    }
-
-    function renderClasses() {
-      const grid = document.getElementById("classesGrid");
-      const cards = [];
-      for (let i = 1; i <= 45; i++) {
-        cards.push(
-          '<a class="menu-button" href="turma.html?id=' + i + '" aria-label="Turma ' + i + '">' +
-            '<span><span class="icon">🏫</span>Turma ' + i + '</span>' +
-            '<span class="arrow">›</span>' +
-          '</a>'
-        );
-      }
-      grid.innerHTML = cards.join("");
-    }
-
-    async function guardPage() {
-      const status = document.getElementById("adminStatus");
-      const resourcesReady = await waitForAuthResources();
-
-      if (!resourcesReady) {
-        status.textContent = "Não foi possível carregar a autenticação. Atualize a página ou limpe o cache do navegador.";
-        document.body.classList.remove("auth-checking");
-        renderClasses();
-        return;
-      }
-
-      const session = await Auth.getSession();
-      if (!session || !session.user) {
-        redirectToLogin();
-        return;
-      }
-
-      status.textContent = "Professor autenticado: " + session.user.email + ".";
-      document.body.classList.remove("auth-checking");
-      renderClasses();
-    }
-
-    guardPage();
-  </script>
-  <script src="animated_cards.js?v=20260428-1"></script>
+  <script src="turmas.js?v=20260429-1"></script>
+  <script src="animated_cards.js?v=20260429-1"></script>
 </body>
 </html>
