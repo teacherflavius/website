@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Turma - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260428-5"></script>
-  <script src="auth.js?v=20260428-5"></script>
-  <link rel="stylesheet" href="professor.css?v=20260428-5">
+  <script src="supabase_config.js?v=20260429-2"></script>
+  <script src="auth.js?v=20260429-2"></script>
+  <link rel="stylesheet" href="professor.css?v=20260429-2">
   <style>
     .class-attendance-row { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
     .class-attendance-row label { display: flex; align-items: center; gap: 10px; color: #f1f5f9; font-weight: bold; margin-bottom: 10px; }
@@ -20,6 +20,27 @@
     .history-card strong { display:block; color:#f1f5f9; margin-bottom:8px; }
     .history-card p { color:#cbd5e1; font-size:13px; line-height:1.5; margin:4px 0; }
     .history-card .student-list { margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); }
+    .students-panel-header { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; }
+    .add-students-button { width:52px; height:52px; border-radius:50%; border:1.5px solid rgba(129,140,248,0.55); background:linear-gradient(135deg, rgba(129,140,248,0.28), rgba(167,139,250,0.18)); color:#fff; font-size:32px; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 12px 30px rgba(0,0,0,0.18); }
+    .add-students-button:hover { transform:translateY(-2px); border-color:rgba(196,181,253,0.75); }
+    .modal-backdrop { position:fixed; inset:0; z-index:1000; background:rgba(2,6,23,0.78); display:none; align-items:center; justify-content:center; padding:18px; }
+    .modal-backdrop.open { display:flex; }
+    .modal-box { width:100%; max-width:760px; max-height:86vh; overflow:auto; background:#111827; border:1px solid rgba(255,255,255,0.12); border-radius:22px; padding:20px; box-shadow:0 28px 80px rgba(0,0,0,0.45); }
+    .modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
+    .modal-header h2 { color:#f1f5f9; font-size:24px; margin:0; }
+    .modal-close { width:40px; height:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#cbd5e1; font-size:24px; cursor:pointer; }
+    .modal-search { width:100%; background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.12); border-radius:12px; padding:12px 13px; color:#f1f5f9; font-size:14px; font-family:Georgia, serif; margin-bottom:14px; }
+    .modal-student-list { display:flex; flex-direction:column; gap:10px; margin:12px 0 16px; }
+    .modal-student-option { display:flex; align-items:flex-start; gap:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:13px; color:#cbd5e1; cursor:pointer; }
+    .modal-student-option input { width:20px; height:20px; accent-color:#818cf8; margin-top:2px; flex-shrink:0; }
+    .modal-student-option strong { display:block; color:#f1f5f9; margin-bottom:4px; }
+    .modal-student-option span { display:block; color:#94a3b8; font-size:13px; line-height:1.4; word-break:break-word; }
+    .modal-actions { display:grid; grid-template-columns:1fr; gap:10px; position:sticky; bottom:-20px; background:#111827; padding-top:12px; }
+    .modal-add-button, .modal-cancel-button { width:100%; border-radius:12px; padding:13px; font-family:Georgia, serif; font-weight:bold; cursor:pointer; }
+    .modal-add-button { border:1.5px solid rgba(129,140,248,0.45); background:rgba(129,140,248,0.14); color:#c4b5fd; }
+    .modal-cancel-button { border:1.5px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:#cbd5e1; }
+    .modal-add-button:disabled { opacity:0.65; cursor:not-allowed; }
+    @media (min-width: 680px) { .modal-actions { grid-template-columns:1fr 1fr; } }
   </style>
 </head>
 <body class="auth-checking">
@@ -79,16 +100,39 @@
     </div>
 
     <div class="panel">
-      <h2>Alunos nesta turma</h2>
+      <div class="students-panel-header">
+        <div>
+          <h2>Alunos nesta turma</h2>
+          <p class="class-attendance-help" style="margin-bottom:0;">Use o botão + para adicionar um ou mais alunos matriculados.</p>
+        </div>
+        <button id="openStudentsModalButton" class="add-students-button" type="button" aria-label="Adicionar alunos à turma">+</button>
+      </div>
       <div id="classStudentsList" class="empty">Carregando alunos da turma...</div>
     </div>
+  </div>
 
-    <div class="panel">
-      <h2>Adicionar alunos matriculados</h2>
-      <div id="availableStudentsList" class="empty">Carregando alunos matriculados...</div>
+  <div id="studentsModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="studentsModalTitle">
+      <div class="modal-header">
+        <div>
+          <h2 id="studentsModalTitle">Adicionar alunos matriculados</h2>
+          <p class="class-attendance-help" style="margin:6px 0 0;">Selecione um ou mais alunos para inserir nesta turma.</p>
+        </div>
+        <button id="closeStudentsModalButton" class="modal-close" type="button" aria-label="Fechar janela">×</button>
+      </div>
+
+      <input id="studentModalSearch" class="modal-search" type="search" placeholder="Buscar por nome, e-mail ou matrícula..." />
+      <div id="availableStudentsList" class="modal-student-list">Carregando alunos matriculados...</div>
+      <div id="modalStudentsMessage" class="empty"></div>
+
+      <div class="modal-actions">
+        <button id="addSelectedStudentsButton" class="modal-add-button" type="button">ADICIONAR ALUNOS SELECIONADOS</button>
+        <button id="cancelStudentsModalButton" class="modal-cancel-button" type="button">CANCELAR</button>
+      </div>
     </div>
   </div>
-  <script src="turma.js?v=20260428-5"></script>
-  <script src="animated_cards.js?v=20260428-5"></script>
+
+  <script src="turma.js?v=20260429-2"></script>
+  <script src="animated_cards.js?v=20260429-2"></script>
 </body>
 </html>
