@@ -50,6 +50,10 @@ function renderResourceLink(url, label) {
   '</a>';
 }
 
+function getDisplayClassName(row) {
+  return row.class_name || "Turma";
+}
+
 function renderClassCard(row) {
   const links = [
     renderResourceLink(row.video_lesson_url, "VIDEOAULA"),
@@ -58,8 +62,7 @@ function renderClassCard(row) {
   ].join("");
 
   return '<div class="class-card">' +
-    '<h2>Turma ' + escapeHtml(row.class_number || "") + '</h2>' +
-    '<p><b>Número da turma:</b> ' + escapeHtml(row.class_number || "Não informado") + '</p>' +
+    '<h2>' + escapeHtml(getDisplayClassName(row)) + '</h2>' +
     '<p><b>Aluno:</b> ' + escapeHtml(row.student_name || "Não informado") + '</p>' +
     '<p><b>E-mail:</b> ' + escapeHtml(row.student_email || "Não informado") + '</p>' +
     '<p><b>Número de matrícula:</b> ' + escapeHtml(row.enrollment_code || "Não informado") + '</p>' +
