@@ -42,31 +42,13 @@ function formatWhatsapp(value) {
 }
 
 function formatAvailability(profile) {
-  const days = [
-    ["seg", "Segunda"],
-    ["ter", "Terça"],
-    ["qua", "Quarta"],
-    ["qui", "Quinta"],
-    ["sex", "Sexta"]
-  ];
-  const hourLabels = {
-    "09": "9h - 10h",
-    "10": "10h - 11h",
-    "12": "12h - 13h",
-    "13": "13h - 14h",
-    "15": "15h - 16h",
-    "17": "17h - 18h",
-    "18": "18h - 19h",
-    "20": "20h - 21h",
-    "21": "21h - 22h"
-  };
+  const days = [["seg", "Segunda"], ["ter", "Terça"], ["qua", "Quarta"], ["qui", "Quinta"], ["sex", "Sexta"]];
+  const hourLabels = { "09": "9h - 10h", "10": "10h - 11h", "12": "12h - 13h", "13": "13h - 14h", "15": "15h - 16h", "17": "17h - 18h", "18": "18h - 19h", "20": "20h - 21h", "21": "21h - 22h" };
   const availability = profile.availability || {};
   const parts = days.map(function (day) {
     const values = Array.isArray(availability[day[0]]) ? availability[day[0]] : [];
     if (!values.length) return "";
-    return '<p><b>' + day[1] + ':</b> ' + values.map(function (hour) {
-      return escapeHtml(hourLabels[hour] || hour);
-    }).join(", ") + '</p>';
+    return '<p><b>' + day[1] + ':</b> ' + values.map(function (hour) { return escapeHtml(hourLabels[hour] || hour); }).join(", ") + '</p>';
   }).filter(Boolean);
   return parts.length ? parts.join("") : '<p>Não informado</p>';
 }
@@ -75,13 +57,7 @@ function formatCreatedAt(value) {
   if (!value) return "Não informado";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  return date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 async function loadStudents() {
@@ -93,6 +69,7 @@ async function loadStudents() {
 
 function renderProfileCard(student) {
   const enrolled = isEnrolled(student);
+  const userId = student.user_id || student.id || "";
   return '<div class="student-card">' +
     '<strong>' + escapeHtml(student.name || "Aluno sem nome") +
       '<span class="pill ' + (enrolled ? '' : 'pending') + '">' + (enrolled ? 'Matriculado' : 'Cadastro sem matrícula confirmada') + '</span>' +
@@ -103,13 +80,13 @@ function renderProfileCard(student) {
     '<p><b>CPF:</b> ' + escapeHtml(formatCpf(student.cpf)) + '</p>' +
     '<p><b>WhatsApp:</b> ' + escapeHtml(formatWhatsapp(student.whatsapp)) + '</p>' +
     '<p><b>Chave PIX:</b> ' + escapeHtml(student.pix_key || "Não informado") + '</p>' +
-    '<p><b>ID do usuário:</b> ' + escapeHtml(student.user_id || student.id || "Não informado") + '</p>' +
+    '<p><b>ID do usuário:</b> ' + escapeHtml(userId || "Não informado") + '</p>' +
     '<p><b>Origem do registro:</b> ' + escapeHtml(student.source || "Não informado") + '</p>' +
     '<p><b>Criado em:</b> ' + escapeHtml(formatCreatedAt(student.created_at)) + '</p>' +
     '<div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08);">' +
-      '<p><b>Disponibilidade para aulas:</b></p>' +
-      formatAvailability(student) +
+      '<p><b>Disponibilidade para aulas:</b></p>' + formatAvailability(student) +
     '</div>' +
+    '<a class="delete-button" href="editar_aluno.html?id=' + encodeURIComponent(userId) + '" style="display:inline-flex; justify-content:center; text-decoration:none; margin-top:14px; border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">EDITAR DADOS</a>' +
   '</div>';
 }
 
@@ -118,13 +95,11 @@ async function renderStudentProfiles() {
   try {
     const students = await loadStudents();
     const enrolledStudents = students.filter(isEnrolled);
-
     if (!enrolledStudents.length) {
       list.className = "empty";
       list.textContent = "Nenhum aluno matriculado encontrado.";
       return;
     }
-
     list.className = "";
     list.innerHTML = enrolledStudents.map(renderProfileCard).join("");
   } catch (error) {
@@ -136,19 +111,16 @@ async function renderStudentProfiles() {
 async function guardPage() {
   const status = document.getElementById("adminStatus");
   const resourcesReady = await waitForAuthResources();
-
   if (!resourcesReady) {
     status.textContent = "Não foi possível carregar a autenticação. Atualize a página ou limpe o cache do navegador.";
     document.body.classList.remove("auth-checking");
     return;
   }
-
   currentProfessorSession = await Auth.getSession();
   if (!currentProfessorSession || !currentProfessorSession.user) {
     redirectToLogin();
     return;
   }
-
   status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
   document.body.classList.remove("auth-checking");
   await renderStudentProfiles();
