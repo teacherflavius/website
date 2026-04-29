@@ -1,5 +1,6 @@
 let currentProfessorSession = null;
 let currentClassNumber = null;
+let currentClassName = null;
 let allStudents = [];
 let classStudentIds = new Set();
 let modalSearchTerm = "";
@@ -32,6 +33,25 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function setClassTitle(className) {
+  currentClassName = className || ("Turma " + currentClassNumber);
+  const title = document.getElementById("classTitle");
+  if (title) title.textContent = currentClassName;
+  document.title = currentClassName + " - Teacher Flávio";
+}
+
+async function loadCurrentClassInfo() {
+  const client = Auth.getClient();
+  const response = await client.rpc("get_teacher_classes");
+  if (response.error) throw response.error;
+  const classes = response.data || [];
+  const match = classes.find(function (item) {
+    return Number(item.class_number) === Number(currentClassNumber);
+  });
+  if (!match) throw new Error("Turma não encontrada ou excluída.");
+  return match;
 }
 
 function formatDateInput(value) {
@@ -123,9 +143,7 @@ function groupHistoryByClassDate(records) {
     const dateKey = record.class_date || "sem-data";
     const notesKey = cleanClassNotes(record.class_notes || "");
     const key = dateKey + "||" + notesKey;
-    if (!groups[key]) {
-      groups[key] = { classDate: record.class_date, notes: notesKey, records: [] };
-    }
+    if (!groups[key]) groups[key] = { classDate: record.class_date, notes: notesKey, records: [] };
     groups[key].records.push(record);
     return groups;
   }, {});
@@ -210,29 +228,6 @@ async function saveClassResources(event) {
   }
 }
 
-async function addStudentToClass(userId, button) {
-  if (button) {
-    button.disabled = true;
-    button.textContent = "ADICIONANDO...";
-  }
-
-  try {
-    const client = Auth.getClient();
-    const response = await client.rpc("add_teacher_class_student", {
-      target_class_number: currentClassNumber,
-      target_user_id: userId
-    });
-    if (response.error) throw response.error;
-    await refreshLists();
-  } catch (error) {
-    alert("Não foi possível adicionar o aluno: " + (error.message || "erro desconhecido") + ". Execute supabase_turmas.sql no Supabase.");
-    if (button) {
-      button.disabled = false;
-      button.textContent = "ADICIONAR À TURMA";
-    }
-  }
-}
-
 async function addSelectedStudentsToClass() {
   const button = document.getElementById("addSelectedStudentsButton");
   const message = document.getElementById("modalStudentsMessage");
@@ -260,7 +255,6 @@ async function addSelectedStudentsToClass() {
       });
       if (response.error) throw response.error;
     }
-
     await refreshLists();
     closeStudentsModal();
   } catch (error) {
@@ -273,7 +267,7 @@ async function addSelectedStudentsToClass() {
 }
 
 async function removeStudentFromClass(userId, button) {
-  const confirmed = window.confirm("Remover este aluno da turma " + currentClassNumber + "?");
+  const confirmed = window.confirm("Remover este aluno de " + (currentClassName || "Turma " + currentClassNumber) + "?");
   if (!confirmed) return;
 
   button.disabled = true;
@@ -299,10 +293,7 @@ function renderStudentCard(student, action) {
   const name = escapeHtml(student.name || student.email || "Aluno sem nome");
   const email = escapeHtml(student.email || "Não informado");
   const enrollmentCode = escapeHtml(student.enrollment_code || "Não informado");
-
-  const button = action === "remove"
-    ? '<button class="delete-button remove-class-student" data-user-id="' + userId + '">REMOVER DA TURMA</button>'
-    : '';
+  const button = action === "remove" ? '<button class="delete-button remove-class-student" data-user-id="' + userId + '">REMOVER DA TURMA</button>' : '';
 
   return '<div class="student-card">' +
     '<strong>' + name + '</strong>' +
@@ -441,7 +432,6 @@ async function saveClassAttendance(event) {
     const classDate = parseBrazilianShortDate(document.getElementById("classDate").value);
     const generalNotes = document.getElementById("classNotes").value.trim();
     const selectedChecks = Array.from(document.querySelectorAll(".attendance-student-check:checked"));
-
     if (!selectedChecks.length) throw new Error("Selecione pelo menos um aluno para registrar a aula.");
 
     const attendanceRecords = selectedChecks.map(function (checkbox) {
@@ -462,7 +452,6 @@ async function saveClassAttendance(event) {
       target_general_notes: generalNotes,
       attendance_records: attendanceRecords
     });
-
     if (response.error) throw response.error;
 
     document.getElementById("classAttendanceForm").reset();
@@ -487,7 +476,7 @@ async function guardPage() {
     return;
   }
 
-  document.getElementById("classTitle").textContent = "Turma " + currentClassNumber;
+  setClassTitle("Carregando turma...");
 
   const resourcesReady = await waitForAuthResources();
   if (!resourcesReady) {
@@ -504,6 +493,8 @@ async function guardPage() {
 
   try {
     status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
+    const classInfo = await loadCurrentClassInfo();
+    setClassTitle(classInfo.class_name || ("Turma " + currentClassNumber));
     allStudents = await loadStudents();
     await renderClassResources();
     await refreshLists();
@@ -515,9 +506,7 @@ async function guardPage() {
 }
 
 const classDateInput = document.getElementById("classDate");
-if (classDateInput) {
-  classDateInput.addEventListener("input", function () { this.value = formatDateInput(this.value); });
-}
+if (classDateInput) classDateInput.addEventListener("input", function () { this.value = formatDateInput(this.value); });
 
 const classResourcesForm = document.getElementById("classResourcesForm");
 if (classResourcesForm) classResourcesForm.addEventListener("submit", saveClassResources);
