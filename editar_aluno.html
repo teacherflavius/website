@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Editar Aluno - Teacher Flávio</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js?v=20260429-1"></script>
+  <script src="auth.js?v=20260429-1"></script>
+  <link rel="stylesheet" href="professor.css?v=20260429-1">
+  <style>
+    .form-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 20px; backdrop-filter: blur(12px); }
+    .form-panel label { display:block; color:#cbd5e1; font-size:13px; margin:12px 0 6px; }
+    .form-panel input { width:100%; background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.12); border-radius:12px; padding:12px 13px; color:#f1f5f9; font-size:14px; font-family:Georgia, serif; }
+    .form-panel input:focus { outline:none; border-color:#818cf8; }
+    .availability-block { margin:18px 0; }
+    .availability-help { color:#94a3b8; font-size:13px; line-height:1.5; margin-bottom:14px; }
+    .availability-grid { width:100%; display:grid; grid-template-columns:82px repeat(5,minmax(0,1fr)); gap:8px 6px; align-items:center; }
+    .grid-head { color:#cbd5e1; text-align:center; font-size:13px; font-weight:bold; white-space:nowrap; }
+    .time-label { color:#f1f5f9; font-size:13px; white-space:nowrap; }
+    .slot { display:flex; justify-content:center; align-items:center; min-height:38px; }
+    .slot input { position:absolute; opacity:0; width:1px; height:1px; margin:0; }
+    .slot-box { width:28px; height:28px; border:3px solid rgba(203,213,225,0.55); border-radius:7px; background:rgba(255,255,255,0.04); display:inline-flex; align-items:center; justify-content:center; transition:all 0.15s ease; cursor:pointer; }
+    .slot input:checked + .slot-box { background:linear-gradient(135deg,#818cf8,#a78bfa); border-color:#c4b5fd; box-shadow:0 0 0 4px rgba(129,140,248,0.16); }
+    .slot input:checked + .slot-box::after { content:"✓"; color:#fff; font-size:18px; font-weight:bold; }
+    .button-row { display:grid; grid-template-columns:1fr; gap:10px; margin-top:16px; }
+    @media (min-width:680px) { .button-row { grid-template-columns:1fr 1fr; } }
+    @media (max-width:520px) { .availability-grid { grid-template-columns:68px repeat(5,minmax(0,1fr)); gap:8px 3px; } .grid-head,.time-label { font-size:12px; } .slot-box { width:25px; height:25px; } }
+  </style>
+</head>
+<body class="auth-checking">
+  <div class="container">
+    <div class="top-links">
+      <a class="top-link" href="perfil_dos_alunos.html">PERFIL DOS ALUNOS</a>
+      <a class="top-link" href="professor.html">ÁREA DO PROFESSOR</a>
+    </div>
+
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Editar Aluno</h1>
+      <div id="adminStatus" class="status">Verificando credenciais de professor...</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="form-panel">
+      <form id="editStudentForm">
+        <label for="studentName">Nome completo</label>
+        <input id="studentName" type="text" required />
+
+        <label for="studentEmail">E-mail</label>
+        <input id="studentEmail" type="email" required />
+
+        <label for="studentCpf">CPF</label>
+        <input id="studentCpf" type="text" inputmode="numeric" maxlength="14" required />
+
+        <label for="studentWhatsapp">WhatsApp</label>
+        <input id="studentWhatsapp" type="tel" inputmode="tel" required />
+
+        <label for="studentPixKey">Chave PIX</label>
+        <input id="studentPixKey" type="text" required />
+
+        <label for="studentEnrollmentCode">Número de matrícula</label>
+        <input id="studentEnrollmentCode" type="text" />
+
+        <div class="availability-block">
+          <h2>Disponibilidade para aulas</h2>
+          <p class="availability-help">Marque os dias e horários disponíveis do aluno.</p>
+          <div class="availability-grid" id="availabilityGrid"></div>
+        </div>
+
+        <div id="editStudentMessage" class="empty"></div>
+        <div class="button-row">
+          <button class="delete-button" type="submit" style="border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">SALVAR ALTERAÇÕES</button>
+          <a class="delete-button" href="perfil_dos_alunos.html" style="display:inline-flex; justify-content:center; text-decoration:none; border-color:rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); color:#cbd5e1;">CANCELAR</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script src="editar_aluno.js?v=20260429-1"></script>
+  <script src="animated_cards.js?v=20260429-1"></script>
+</body>
+</html>
