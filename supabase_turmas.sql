@@ -222,7 +222,10 @@ $$;
 
 grant execute on function public.save_teacher_class_resources(integer, text, text, text) to authenticated;
 
-create or replace function public.get_my_student_class()
+-- Necessário porque a estrutura de retorno desta função mudou para incluir os links da turma.
+drop function if exists public.get_my_student_class();
+
+create function public.get_my_student_class()
 returns table (
   id text,
   class_number integer,
