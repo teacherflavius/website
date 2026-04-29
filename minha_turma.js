@@ -57,7 +57,7 @@ function getDisplayClassName(row) {
 function renderClassCard(row) {
   const links = [
     renderResourceLink(row.video_lesson_url, "ASSISTIR A AULA"),
-    renderResourceLink(row.lesson_material_url, "MATERIAL DA AULA"),
+    renderResourceLink(row.lesson_material_url, "ANOTAÇÕES DA AULA"),
     renderResourceLink(row.whatsapp_group_url, "WHATSAPP")
   ].join("");
 
