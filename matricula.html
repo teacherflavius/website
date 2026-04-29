@@ -41,6 +41,7 @@
     .code-box { display: none; text-align: center; background: rgba(110,231,183,0.08); border: 1px solid rgba(110,231,183,0.35); border-radius: 16px; padding: 18px; margin: 16px 0; }
     .code-box strong { display: block; color: #6ee7b7; font-size: 34px; font-family: monospace; letter-spacing: 4px; margin-top: 8px; }
     .notify-message { color: #f1f5f9; font-size: 15px; line-height: 1.5; margin: 14px 0 0; font-weight: bold; }
+    .email-confirmation-message { color: #6ee7b7; font-size: 16px; line-height: 1.6; margin: 0; font-weight: bold; text-transform: uppercase; }
     .links { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 
     @media (max-width: 520px) {
@@ -87,10 +88,7 @@
     </form>
 
     <div id="codeBox" class="code-box">
-      <p>Matrícula concluída. Seu código de matrícula é:</p>
-      <strong id="enrollmentCode"></strong>
-      <p class="notify-message">Agora que você concluiu sua matrícula, avise o professor.</p>
-      <a class="btn whatsapp-btn" href="https://wa.me/5534998349756?text=Teacher%2C%20acabei%20de%20me%20matricular%20nas%20aulas." target="_blank" rel="noopener noreferrer">AVISE O PROFESSOR</a>
+      <p class="email-confirmation-message">FOI ENVIADO UMA MENSAGEM DE CONFIRMAÇÃO PARA O EMAIL CADASTRADO NA SUA MATRICULA. PARA ACESSAR O SITE VÁ ATÉ SUA CAIXA DE EMAIL E VERIFIQUE.</p>
     </div>
 
     <div class="links">
@@ -176,7 +174,6 @@
       event.preventDefault();
       const message = document.getElementById("message");
       const codeBox = document.getElementById("codeBox");
-      const codeEl = document.getElementById("enrollmentCode");
       message.className = "error";
       message.textContent = "";
       codeBox.style.display = "none";
@@ -188,7 +185,7 @@
       }
 
       try {
-        const result = await Auth.enrollStudent({
+        await Auth.enrollStudent({
           name: document.getElementById("name").value.trim(),
           cpf: document.getElementById("cpf").value.trim(),
           email: document.getElementById("email").value.trim(),
@@ -198,10 +195,9 @@
           password: document.getElementById("password").value
         });
 
-        codeEl.textContent = result.enrollment_code;
         codeBox.style.display = "block";
         message.className = "success";
-        message.textContent = "Matrícula registrada no Supabase. Se a confirmação por e-mail estiver ativa, confirme seu e-mail antes de entrar.";
+        message.textContent = "FOI ENVIADO UMA MENSAGEM DE CONFIRMAÇÃO PARA O EMAIL CADASTRADO NA SUA MATRICULA. PARA ACESSAR O SITE VÁ ATÉ SUA CAIXA DE EMAIL E VERIFIQUE.";
         document.getElementById("enrollmentForm").reset();
         document.querySelectorAll('input[name="availability"]').forEach(input => input.checked = false);
         document.getElementById("password").type = "password";
