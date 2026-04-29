@@ -5,9 +5,133 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Perfil dos Alunos - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260428-1"></script>
-  <script src="auth.js?v=20260428-1"></script>
-  <link rel="stylesheet" href="professor.css?v=20260428-1">
+  <script src="supabase_config.js?v=20260429-7"></script>
+  <script src="auth.js?v=20260429-7"></script>
+  <link rel="stylesheet" href="professor.css?v=20260429-7">
+  <style>
+    .student-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(2, 6, 23, 0.78);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .modal-backdrop.open {
+      display: flex !important;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 680px;
+      max-height: 86vh;
+      overflow: auto;
+      background: #111827;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: 0 28px 80px rgba(0,0,0,0.45);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .modal-header h2 {
+      color: #f1f5f9;
+      font-size: 24px;
+      margin: 0 0 6px;
+    }
+
+    .modal-help {
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .modal-close {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: #cbd5e1;
+      font-size: 24px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .class-select {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 13px 14px;
+      color: #f1f5f9;
+      font-size: 15px;
+      font-family: Georgia, serif;
+      margin: 14px 0;
+    }
+
+    .class-select option {
+      color: #0f172a;
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .modal-save-button,
+    .modal-cancel-button {
+      width: 100%;
+      border-radius: 12px;
+      padding: 13px;
+      font-family: Georgia, serif;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .modal-save-button {
+      border: 1.5px solid rgba(129,140,248,0.45);
+      background: rgba(129,140,248,0.14);
+      color: #c4b5fd;
+    }
+
+    .modal-cancel-button {
+      border: 1.5px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: #cbd5e1;
+    }
+
+    .modal-save-button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    @media (min-width: 680px) {
+      .student-actions, .modal-actions {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
 </head>
 <body class="auth-checking">
   <div class="container">
@@ -29,7 +153,32 @@
       <div id="studentProfilesList" class="empty">Carregando perfis...</div>
     </div>
   </div>
-  <script src="perfil_dos_alunos.js?v=20260428-1"></script>
-  <script src="animated_cards.js?v=20260428-1"></script>
+
+  <div id="classAssignmentModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="classAssignmentTitle">
+      <div class="modal-header">
+        <div>
+          <h2 id="classAssignmentTitle">Atribuir turma</h2>
+          <p id="classAssignmentStudentName" class="modal-help">Selecione uma turma para o aluno.</p>
+        </div>
+        <button id="closeClassAssignmentModalButton" class="modal-close" type="button" aria-label="Fechar janela">×</button>
+      </div>
+
+      <label for="classAssignmentSelect" class="modal-help">Turma</label>
+      <select id="classAssignmentSelect" class="class-select">
+        <option value="">Carregando turmas...</option>
+      </select>
+
+      <div id="classAssignmentMessage" class="empty"></div>
+
+      <div class="modal-actions">
+        <button id="saveClassAssignmentButton" class="modal-save-button" type="button">SALVAR TURMA</button>
+        <button id="cancelClassAssignmentButton" class="modal-cancel-button" type="button">CANCELAR</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="perfil_dos_alunos.js?v=20260429-7"></script>
+  <script src="animated_cards.js?v=20260429-7"></script>
 </body>
 </html>
