@@ -5,17 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Criar Exercício - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260429-1"></script>
-  <script src="auth.js?v=20260429-1"></script>
-  <link rel="stylesheet" href="professor.css?v=20260429-1">
+  <script src="supabase_config.js?v=20260429-2"></script>
+  <script src="auth.js?v=20260429-2"></script>
+  <link rel="stylesheet" href="professor.css?v=20260429-2">
   <style>
     .form-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 20px; backdrop-filter: blur(12px); margin-bottom: 18px; }
     .form-panel label { display:block; color:#cbd5e1; font-size:13px; margin:12px 0 6px; }
     .form-panel input { width:100%; background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.12); border-radius:12px; padding:12px 13px; color:#f1f5f9; font-size:14px; font-family:Georgia, serif; }
     .form-panel input:focus { outline:none; border-color:#818cf8; }
+    .schedule-grid { display:grid; grid-template-columns:1fr; gap:10px; }
+    .field-help { color:#94a3b8; font-size:12px; line-height:1.5; margin-top:7px; }
     .exercise-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
     .exercise-card strong { display:block; color:#f1f5f9; margin-bottom:8px; }
     .exercise-card p { color:#cbd5e1; font-size:13px; line-height:1.5; margin:4px 0; word-break:break-word; }
+    @media (min-width: 680px) { .schedule-grid { grid-template-columns:1fr 1fr; } }
   </style>
 </head>
 <body class="auth-checking">
@@ -42,6 +45,18 @@
         <label for="exerciseUrl">Link do exercício</label>
         <input id="exerciseUrl" type="url" placeholder="https://..." required />
 
+        <div class="schedule-grid">
+          <div>
+            <label for="publishDate">Data de publicação</label>
+            <input id="publishDate" type="date" />
+          </div>
+          <div>
+            <label for="publishTime">Hora de publicação</label>
+            <input id="publishTime" type="time" />
+          </div>
+        </div>
+        <div class="field-help">Se data e hora ficarem em branco, o exercício será publicado imediatamente. Para programar a publicação, preencha os dois campos.</div>
+
         <button class="delete-button" type="submit" style="border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">SALVAR EXERCÍCIO</button>
         <div id="createExerciseMessage" class="empty" style="margin-top:10px;"></div>
       </form>
@@ -52,7 +67,7 @@
       <div id="teacherExercisesList" class="empty">Carregando exercícios...</div>
     </div>
   </div>
-  <script src="criar_exercicio.js?v=20260429-1"></script>
-  <script src="animated_cards.js?v=20260429-1"></script>
+  <script src="criar_exercicio.js?v=20260429-2"></script>
+  <script src="animated_cards.js?v=20260429-2"></script>
 </body>
 </html>
