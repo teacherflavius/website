@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Turma - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260429-2"></script>
-  <script src="auth.js?v=20260429-2"></script>
-  <link rel="stylesheet" href="professor.css?v=20260429-2">
+  <script src="supabase_config.js?v=20260429-3"></script>
+  <script src="auth.js?v=20260429-3"></script>
+  <link rel="stylesheet" href="professor.css?v=20260429-3">
   <style>
     .class-attendance-row { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
     .class-attendance-row label { display: flex; align-items: center; gap: 10px; color: #f1f5f9; font-weight: bold; margin-bottom: 10px; }
@@ -21,10 +21,10 @@
     .history-card p { color:#cbd5e1; font-size:13px; line-height:1.5; margin:4px 0; }
     .history-card .student-list { margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); }
     .students-panel-header { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:14px; }
-    .add-students-button { width:52px; height:52px; border-radius:50%; border:1.5px solid rgba(129,140,248,0.55); background:linear-gradient(135deg, rgba(129,140,248,0.28), rgba(167,139,250,0.18)); color:#fff; font-size:32px; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 12px 30px rgba(0,0,0,0.18); }
+    .add-students-button { width:52px; height:52px; border-radius:50%; border:1.5px solid rgba(129,140,248,0.55); background:linear-gradient(135deg, rgba(129,140,248,0.28), rgba(167,139,250,0.18)); color:#fff; font-size:32px; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 12px 30px rgba(0,0,0,0.18); position:relative; z-index:20; }
     .add-students-button:hover { transform:translateY(-2px); border-color:rgba(196,181,253,0.75); }
-    .modal-backdrop { position:fixed; inset:0; z-index:1000; background:rgba(2,6,23,0.78); display:none; align-items:center; justify-content:center; padding:18px; }
-    .modal-backdrop.open { display:flex; }
+    .modal-backdrop { position:fixed; inset:0; z-index:10000; background:rgba(2,6,23,0.78); display:none; align-items:center; justify-content:center; padding:18px; }
+    .modal-backdrop.open { display:flex !important; }
     .modal-box { width:100%; max-width:760px; max-height:86vh; overflow:auto; background:#111827; border:1px solid rgba(255,255,255,0.12); border-radius:22px; padding:20px; box-shadow:0 28px 80px rgba(0,0,0,0.45); }
     .modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
     .modal-header h2 { color:#f1f5f9; font-size:24px; margin:0; }
@@ -64,13 +64,10 @@
       <form id="classResourcesForm">
         <label class="class-resource-label" for="videoLessonUrl">Link da videoaula</label>
         <input id="videoLessonUrl" type="url" placeholder="https://..." />
-
         <label class="class-resource-label" for="lessonMaterialUrl">Link do material da aula</label>
         <input id="lessonMaterialUrl" type="url" placeholder="https://..." />
-
         <label class="class-resource-label" for="whatsappGroupUrl">Link do grupo de WhatsApp da turma</label>
         <input id="whatsappGroupUrl" type="url" placeholder="https://chat.whatsapp.com/..." />
-
         <button class="delete-button" type="submit" style="border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">SALVAR LINKS DA TURMA</button>
         <div id="classResourcesMessage" class="empty" style="margin-top:10px;"></div>
       </form>
@@ -82,12 +79,9 @@
       <form id="classAttendanceForm">
         <label for="classDate" style="display:block; color:#cbd5e1; font-size:13px; margin-bottom:6px;">Data da aula</label>
         <input id="classDate" type="text" inputmode="numeric" maxlength="8" placeholder="DD/MM/AA" pattern="\d{2}/\d{2}/\d{2}" required />
-
         <label for="classNotes" style="display:block; color:#cbd5e1; font-size:13px; margin:12px 0 6px;">O que foi feito na aula</label>
         <textarea id="classNotes" placeholder="Ex.: conversação, revisão de simple present, correção de tarefa, leitura em voz alta..."></textarea>
-
         <div id="attendanceStudentsList" style="margin-top:16px;" class="empty">Carregando alunos da turma...</div>
-
         <button class="delete-button" type="submit" style="border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">SALVAR FREQUÊNCIA DA AULA</button>
         <div id="attendanceMessage" class="empty" style="margin-top:10px;"></div>
       </form>
@@ -105,7 +99,7 @@
           <h2>Alunos nesta turma</h2>
           <p class="class-attendance-help" style="margin-bottom:0;">Use o botão + para adicionar um ou mais alunos matriculados.</p>
         </div>
-        <button id="openStudentsModalButton" class="add-students-button" type="button" aria-label="Adicionar alunos à turma">+</button>
+        <button id="openStudentsModalButton" class="add-students-button" type="button" onclick="openStudentsModalDirect()" aria-label="Adicionar alunos à turma">+</button>
       </div>
       <div id="classStudentsList" class="empty">Carregando alunos da turma...</div>
     </div>
@@ -118,21 +112,34 @@
           <h2 id="studentsModalTitle">Adicionar alunos matriculados</h2>
           <p class="class-attendance-help" style="margin:6px 0 0;">Selecione um ou mais alunos para inserir nesta turma.</p>
         </div>
-        <button id="closeStudentsModalButton" class="modal-close" type="button" aria-label="Fechar janela">×</button>
+        <button id="closeStudentsModalButton" class="modal-close" type="button" onclick="closeStudentsModalDirect()" aria-label="Fechar janela">×</button>
       </div>
-
       <input id="studentModalSearch" class="modal-search" type="search" placeholder="Buscar por nome, e-mail ou matrícula..." />
       <div id="availableStudentsList" class="modal-student-list">Carregando alunos matriculados...</div>
       <div id="modalStudentsMessage" class="empty"></div>
-
       <div class="modal-actions">
         <button id="addSelectedStudentsButton" class="modal-add-button" type="button">ADICIONAR ALUNOS SELECIONADOS</button>
-        <button id="cancelStudentsModalButton" class="modal-cancel-button" type="button">CANCELAR</button>
+        <button id="cancelStudentsModalButton" class="modal-cancel-button" type="button" onclick="closeStudentsModalDirect()">CANCELAR</button>
       </div>
     </div>
   </div>
 
-  <script src="turma.js?v=20260429-2"></script>
-  <script src="animated_cards.js?v=20260429-2"></script>
+  <script>
+    function openStudentsModalDirect() {
+      var modal = document.getElementById('studentsModal');
+      if (!modal) return;
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      if (typeof renderAvailableStudentsModal === 'function') renderAvailableStudentsModal();
+    }
+    function closeStudentsModalDirect() {
+      var modal = document.getElementById('studentsModal');
+      if (!modal) return;
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+  </script>
+  <script src="turma.js?v=20260429-3"></script>
+  <script src="animated_cards.js?v=20260429-3"></script>
 </body>
 </html>
