@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Turma - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260428-4"></script>
-  <script src="auth.js?v=20260428-4"></script>
-  <link rel="stylesheet" href="professor.css?v=20260428-4">
+  <script src="supabase_config.js?v=20260428-5"></script>
+  <script src="auth.js?v=20260428-5"></script>
+  <link rel="stylesheet" href="professor.css?v=20260428-5">
   <style>
     .class-attendance-row { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
     .class-attendance-row label { display: flex; align-items: center; gap: 10px; color: #f1f5f9; font-weight: bold; margin-bottom: 10px; }
@@ -16,6 +16,10 @@
     .class-attendance-row textarea, #classNotes { min-height: 76px; resize: vertical; }
     .class-attendance-help { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 14px; }
     .class-resource-label { display:block; color:#cbd5e1; font-size:13px; margin:12px 0 6px; }
+    .history-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+    .history-card strong { display:block; color:#f1f5f9; margin-bottom:8px; }
+    .history-card p { color:#cbd5e1; font-size:13px; line-height:1.5; margin:4px 0; }
+    .history-card .student-list { margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); }
   </style>
 </head>
 <body class="auth-checking">
@@ -69,6 +73,12 @@
     </div>
 
     <div class="panel">
+      <h2>Histórico de aulas e atividades da turma</h2>
+      <p class="class-attendance-help">Veja todas as aulas já registradas para os alunos atualmente inscritos nesta turma.</p>
+      <div id="classHistoryList" class="empty">Carregando histórico da turma...</div>
+    </div>
+
+    <div class="panel">
       <h2>Alunos nesta turma</h2>
       <div id="classStudentsList" class="empty">Carregando alunos da turma...</div>
     </div>
@@ -78,7 +88,7 @@
       <div id="availableStudentsList" class="empty">Carregando alunos matriculados...</div>
     </div>
   </div>
-  <script src="turma.js?v=20260428-4"></script>
-  <script src="animated_cards.js?v=20260428-4"></script>
+  <script src="turma.js?v=20260428-5"></script>
+  <script src="animated_cards.js?v=20260428-5"></script>
 </body>
 </html>
