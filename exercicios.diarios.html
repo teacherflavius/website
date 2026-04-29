@@ -198,6 +198,16 @@
     .completion-status.saved { color: #6ee7b7; }
     .completion-status.error { color: #fca5a5; }
 
+    .blocked-panel {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 20px;
+      color: #cbd5e1;
+      line-height: 1.6;
+      text-align: center;
+    }
+
     @media (min-width: 760px) {
       .menu-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -213,7 +223,7 @@
     <div class="header">
       <div><span class="badge">TEACHER FLÁVIO</span></div>
       <h1>Exercícios Diários</h1>
-      <div id="pageStatus" class="status">Carregando seus registros...</div>
+      <div id="pageStatus" class="status">Verificando acesso...</div>
     </div>
 
     <div class="divider"></div>
@@ -255,8 +265,20 @@
       document.getElementById("pageStatus").textContent = text;
     }
 
+    function isEnrolledProfile(profile) {
+      if (!profile) return false;
+      return profile.enrolled === true || profile.enrolled === "true" || !!profile.enrollment_code;
+    }
+
+    function blockPage(message) {
+      const grid = document.getElementById("exerciseGrid");
+      grid.className = "";
+      grid.innerHTML = '<div class="blocked-panel">' + escapeHtml(message) + '</div>';
+    }
+
     function renderExercises() {
       const grid = document.getElementById("exerciseGrid");
+      grid.className = "menu-grid";
       grid.innerHTML = dailyExercises.map(function (exercise) {
         const isDone = completedExercises.get(exercise.id) === true;
         return '<div class="exercise-card ' + (isDone ? 'done' : '') + '" data-exercise-id="' + escapeHtml(exercise.id) + '">' +
@@ -335,35 +357,38 @@
     }
 
     async function initPage() {
-      renderExercises();
+      const grid = document.getElementById("exerciseGrid");
+      grid.innerHTML = "";
 
       if (!window.Auth || !Auth.isConfigured()) {
         if (window.Auth && Auth.showConfigWarning) Auth.showConfigWarning();
-        setPageStatus("Supabase ainda não configurado. Os exercícios estão disponíveis, mas o registro de conclusão não será salvo.");
-        document.querySelectorAll(".completion-checkbox").forEach(function (checkbox) { checkbox.disabled = true; });
+        setPageStatus("Supabase ainda não configurado.");
+        blockPage("Não foi possível verificar sua matrícula.");
         return;
       }
 
       const session = await Auth.getSession();
       if (!session || !session.user) {
-        setPageStatus("Entre na sua conta para marcar os exercícios que você já fez.");
-        document.querySelectorAll(".completion-checkbox").forEach(function (checkbox) {
-          checkbox.addEventListener("click", function (event) {
-            event.preventDefault();
-            window.location.href = "login.html?next=" + encodeURIComponent("exercicios-diarios/");
-          });
-        });
+        window.location.href = "login.html?next=" + encodeURIComponent("exercicios-diarios/");
         return;
       }
 
       currentUser = session.user;
 
       try {
+        const profile = await Auth.getProfile();
+        if (!isEnrolledProfile(profile)) {
+          setPageStatus("Acesso restrito a alunos matriculados.");
+          blockPage("Esta página está disponível apenas para alunos matriculados.");
+          return;
+        }
+
         await loadCompletedExercises();
         renderExercises();
         setPageStatus("Aluno conectado: " + currentUser.email + ".");
       } catch (error) {
         setPageStatus("Não foi possível carregar seus registros. Execute o SQL daily_exercise_completion no Supabase.");
+        blockPage("Não foi possível verificar sua matrícula ou carregar seus exercícios.");
       }
     }
 
