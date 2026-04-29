@@ -27,7 +27,14 @@ function escapeHtml(value) {
 }
 
 function isEnrolled(student) {
-  return student.enrolled === true || student.enrolled === "true" || !!student.enrollment_code;
+  return (
+    student.enrolled === true ||
+    student.enrolled === "true" ||
+    !!student.enrollment_code ||
+    !!student.email ||
+    !!student.user_id ||
+    !!student.id
+  );
 }
 
 function updateStudentCount(count) {
