@@ -1,6 +1,15 @@
 (function () {
   function sleep(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
 
+  var specialLessonOptions = [
+    "Feriado",
+    "Teacher Cancelou",
+    "Aluno cancelou",
+    "Conversation",
+    "Outras atividades",
+    "Problemas técnicos"
+  ];
+
   async function waitForAuthResources() {
     for (var i = 0; i < 20; i++) {
       if (window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured && Auth.isConfigured()) return true;
@@ -42,6 +51,13 @@
 
   function lessonOptions(selected) {
     var html = '<option value="">Selecionar</option>';
+
+    specialLessonOptions.forEach(function (option) {
+      html += '<option value="' + escapeHtml(option) + '"' + (selected === option ? ' selected' : '') + '>' + escapeHtml(option) + '</option>';
+    });
+
+    html += '<option disabled>──────────</option>';
+
     for (var i = 1; i <= 74; i++) {
       var lesson = "L" + i;
       html += '<option value="' + lesson + '"' + (selected === lesson ? ' selected' : '') + '>' + lesson + '</option>';
@@ -116,7 +132,7 @@
       return;
     }
     if (!lessonSelect.value) {
-      alert("Escolha uma lição de L1 a L74.");
+      alert("Escolha uma opção da lista.");
       return;
     }
 
@@ -134,7 +150,7 @@
       if (response.error) throw response.error;
       await renderLessonAttendance();
     } catch (error) {
-      alert("Não foi possível salvar a lição: " + (error.message || "erro desconhecido") + ". Execute supabase_licoes_turma.sql no Supabase.");
+      alert("Não foi possível salvar o registro: " + (error.message || "erro desconhecido") + ". Execute supabase_licoes_opcoes_extras.sql no Supabase.");
       button.disabled = false;
       button.textContent = "SALVAR";
     }
