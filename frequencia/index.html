@@ -1,21 +1,57 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Frequência - Teacher Flávio</title>
-  <link rel="canonical" href="/frequencia/">
-  <script>
-    (async function () {
-      const response = await fetch('/frequência.html', { cache: 'no-store' });
-      const html = await response.text();
-      document.open();
-      document.write(html.replace('<head>', '<head>\n  <base href="/">'));
-      document.close();
-    })();
-  </script>
+  <base href="/">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js?v=20260429-11"></script>
+  <script src="auth.js?v=20260429-11"></script>
+  <link rel="stylesheet" href="professor.css?v=20260429-11">
+  <style>
+    .student-frequency-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 20px; backdrop-filter: blur(12px); }
+    .frequency-help { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+    .frequency-summary { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 18px; }
+    .summary-card { background: rgba(129,140,248,0.10); border: 1px solid rgba(129,140,248,0.25); border-radius: 16px; padding: 15px; }
+    .summary-card strong { display: block; color: #f1f5f9; font-size: 28px; margin-bottom: 4px; }
+    .summary-card span { color: #cbd5e1; font-size: 13px; }
+    .frequency-table-wrap { width: 100%; overflow-x: auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); }
+    .frequency-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 420px; }
+    .frequency-table th { background: rgba(129,140,248,0.14); color: #f1f5f9; text-align: left; padding: 14px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .frequency-table td { color: #cbd5e1; padding: 13px 14px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .frequency-table tr:last-child td { border-bottom: none; }
+    .lesson-pill { display: inline-flex; min-width: 58px; justify-content: center; align-items: center; border-radius: 999px; padding: 8px 12px; background: linear-gradient(135deg, rgba(129,140,248,0.30), rgba(167,139,250,0.20)); border: 1px solid rgba(196,181,253,0.38); color: #f1f5f9; font-weight: bold; }
+    .empty-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 18px; color: #cbd5e1; line-height: 1.5; }
+    @media (min-width: 680px) { .frequency-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
 </head>
-<body>
-  <p>Carregando frequência...</p>
+<body class="auth-checking">
+  <div class="container">
+    <div class="top-links">
+      <a class="top-link" href="/area-do-estudante/">ÁREA DO ESTUDANTE</a>
+      <a class="top-link" href="/">HOME</a>
+    </div>
+
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Frequência</h1>
+      <div id="loginStatus" class="status">Verificando login do aluno...</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="student-frequency-panel">
+      <h2>Minhas aulas registradas</h2>
+      <p class="frequency-help">Aqui aparecem os dias das aulas e as lições registradas pelo professor.</p>
+      <div class="frequency-summary">
+        <div class="summary-card"><strong id="totalClasses">0</strong><span>Aulas registradas</span></div>
+        <div class="summary-card"><strong id="lastLesson">—</strong><span>Última lição registrada</span></div>
+      </div>
+      <div id="frequencyContent" class="empty-panel">Carregando frequência...</div>
+    </div>
+  </div>
+  <script src="frequencia_aluno.js?v=20260429-1"></script>
+  <script src="animated_cards.js?v=20260429-11"></script>
 </body>
 </html>
