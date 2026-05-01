@@ -1,4 +1,4 @@
-let currentProfessorSession = null;
+let currentProfessorUser = null;
 let currentClassNumber = null;
 let currentClassName = null;
 let allStudents = [];
@@ -10,10 +10,6 @@ function getClassNumber() {
   const value = Number(params.get("id"));
   if (!Number.isInteger(value) || value < 1) return null;
   return value;
-}
-
-function redirectToLogin() {
-  window.location.href = "login.html?next=" + encodeURIComponent("turma.html?id=" + currentClassNumber);
 }
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
@@ -485,14 +481,11 @@ async function guardPage() {
     return;
   }
 
-  currentProfessorSession = await Auth.getSession();
-  if (!currentProfessorSession || !currentProfessorSession.user) {
-    redirectToLogin();
-    return;
-  }
+  currentProfessorUser = await Auth.requireTeacherAdmin("/turma.html?id=" + encodeURIComponent(currentClassNumber));
+  if (!currentProfessorUser) return;
 
   try {
-    status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
+    status.textContent = "Professor autenticado: " + currentProfessorUser.email + ".";
     const classInfo = await loadCurrentClassInfo();
     setClassTitle(classInfo.class_name || ("Turma " + currentClassNumber));
     allStudents = await loadStudents();
