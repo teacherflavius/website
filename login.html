@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app_config.js?v=20260430-1"></script>
   <script src="supabase_config.js?v=20260429-4"></script>
   <script src="auth.js?v=20260429-4"></script>
   <style>
@@ -52,8 +53,20 @@
 
   <script>
     function getNextPage() {
+      const fallback = window.APP_CONFIG && APP_CONFIG.paths && APP_CONFIG.paths.home ? APP_CONFIG.paths.home : "index.html";
       const params = new URLSearchParams(window.location.search);
-      return params.get("next") || "index.html";
+      const next = params.get("next") || fallback;
+
+      if (/^https?:\/\//i.test(next) || next.startsWith("//")) return fallback;
+      if (next.includes("\\")) return fallback;
+
+      try {
+        const target = new URL(next, window.location.origin);
+        if (target.origin !== window.location.origin) return fallback;
+        return target.pathname + target.search + target.hash;
+      } catch (_) {
+        return fallback;
+      }
     }
 
     document.querySelectorAll(".toggle-password").forEach(function (button) {
