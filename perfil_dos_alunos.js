@@ -1,8 +1,4 @@
-let currentProfessorSession = null;
-
-function redirectToLogin() {
-  window.location.href = "login.html?next=" + encodeURIComponent("perfil_dos_alunos.html");
-}
+let currentProfessorUser = null;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -116,12 +112,11 @@ async function guardPage() {
     document.body.classList.remove("auth-checking");
     return;
   }
-  currentProfessorSession = await Auth.getSession();
-  if (!currentProfessorSession || !currentProfessorSession.user) {
-    redirectToLogin();
-    return;
-  }
-  status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
+
+  currentProfessorUser = await Auth.requireTeacherAdmin("/perfil-dos-alunos/");
+  if (!currentProfessorUser) return;
+
+  status.textContent = "Professor autenticado: " + currentProfessorUser.email + ".";
   document.body.classList.remove("auth-checking");
   await renderStudentProfiles();
 }
