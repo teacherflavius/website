@@ -47,8 +47,19 @@
     return window.teacherFlavioSupabase;
   }
 
+  function getAppPath(name, fallback) {
+    return window.APP_CONFIG && window.APP_CONFIG.paths && window.APP_CONFIG.paths[name]
+      ? window.APP_CONFIG.paths[name]
+      : fallback;
+  }
+
   function getRedirectUrl() {
-    return new URL("login.html", window.location.href).href;
+    return new URL(getAppPath("login", "/login/"), window.location.origin).href;
+  }
+
+  function buildLoginRedirect(nextPath) {
+    const loginPath = getAppPath("login", "/login/");
+    return loginPath + "?next=" + encodeURIComponent(nextPath || getAppPath("home", "/"));
   }
 
   function showConfigWarning() {
@@ -138,18 +149,42 @@
     return response && response.data ? response.data.user : null;
   }
 
-  async function requireAuth() {
+  async function requireAuth(nextPath) {
     if (!isConfigured()) {
       showConfigWarning();
       return null;
     }
     const session = await getSession();
     if (!session) {
-      const next = encodeURIComponent(window.location.pathname.split("/").pop() || "index.html");
-      window.location.href = "login.html?next=" + next;
+      window.location.href = buildLoginRedirect(nextPath || window.location.pathname);
       return null;
     }
     return session.user;
+  }
+
+  async function isTeacherAdmin() {
+    const client = getClient();
+    const user = await getUser();
+    if (!client || !user) return false;
+    const response = await client.rpc("is_teacher_admin");
+    if (response.error) {
+      console.warn("Não foi possível verificar credenciais de professor:", response.error.message);
+      return false;
+    }
+    return response.data === true;
+  }
+
+  async function requireTeacherAdmin(nextPath) {
+    const user = await requireAuth(nextPath || window.location.pathname);
+    if (!user) return null;
+
+    const allowed = await isTeacherAdmin();
+    if (!allowed) {
+      window.location.href = getAppPath("home", "/");
+      return null;
+    }
+
+    return user;
   }
 
   async function signUp(name, email, password) {
@@ -252,7 +287,7 @@
     const client = getClient();
     if (!client) return;
     await client.auth.signOut();
-    window.location.href = "login.html";
+    window.location.href = getAppPath("login", "/login/");
   }
 
   async function getProfile() {
@@ -369,6 +404,8 @@
     getSession: getSession,
     getUser: getUser,
     requireAuth: requireAuth,
+    isTeacherAdmin: isTeacherAdmin,
+    requireTeacherAdmin: requireTeacherAdmin,
     signUp: signUp,
     enrollStudent: enrollStudent,
     signIn: signIn,
