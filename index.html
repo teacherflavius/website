@@ -4,24 +4,121 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Teacher Flávio</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260427-5"></script>
-  <script src="auth.js?v=20260427-5"></script>
   <link rel="stylesheet" href="home.css?v=20260427-5">
+  <style>
+    .hero-subtitle {
+      color: #cbd5e1;
+      font-size: 16px;
+      line-height: 1.6;
+      text-align: center;
+      margin: -8px auto 22px;
+      max-width: 620px;
+    }
+
+    .entry-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .entry-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 128px;
+      padding: 24px;
+      border-radius: 22px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: #f1f5f9;
+      font-family: Georgia, serif;
+      text-decoration: none;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.20);
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .entry-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(129,140,248,0.55);
+      background: rgba(129,140,248,0.09);
+    }
+
+    .entry-card strong {
+      display: block;
+      font-size: 24px;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .entry-card span.description {
+      display: block;
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .entry-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 28px;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      box-shadow: 0 12px 30px rgba(129,140,248,0.22);
+    }
+
+    .entry-card.student {
+      border-color: rgba(110,231,183,0.32);
+      background: rgba(110,231,183,0.07);
+    }
+
+    .entry-card.student .entry-icon {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+    }
+
+    .entry-card.visitor {
+      border-color: rgba(129,140,248,0.32);
+    }
+
+    @media (min-width: 720px) {
+      .entry-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <div class="header"><h1>Teacher Flávio</h1></div>
-    <div class="divider"></div>
-    <div class="menu-grid">
-      <a id="enrollmentCard" class="menu-button enrollment" href="/matricula/"><span><span class="icon">🪪</span>MATRÍCULA</span><span class="arrow">›</span></a>
-      <a class="menu-button" href="/area-do-estudante/"><span><span class="icon">🎓</span>ÁREA DO ESTUDANTE</span><span class="arrow">›</span></a>
-      <a class="menu-button" href="https://youtube.com/@teacherflavio" target="_blank" rel="noopener noreferrer"><span><span class="icon">▶️</span>YOUTUBE</span><span class="arrow">›</span></a>
-      <a class="menu-button" href="https://www.instagram.com/teacher.flavius" target="_blank" rel="noopener noreferrer"><span><span class="icon">📸</span>INSTAGRAM</span><span class="arrow">›</span></a>
+    <div class="header">
+      <h1>Teacher Flávio</h1>
+      <p class="hero-subtitle">Escolha uma opção para acessar sua área ou conhecer melhor as aulas de inglês.</p>
     </div>
-    <div id="professorAdminLink" class="footer-admin" style="display:none;"><a class="professor-button" href="/professor/">ÁREA DO PROFESSOR</a></div>
+
+    <div class="divider"></div>
+
+    <div class="entry-grid">
+      <a class="entry-card student" href="/aluno.html">
+        <span>
+          <strong>JÁ SOU ALUNO</strong>
+          <span class="description">Acesse matrícula, área do estudante, links das aulas e conteúdos do curso.</span>
+        </span>
+        <span class="entry-icon">🎓</span>
+      </a>
+
+      <a class="entry-card visitor" href="/matricula/">
+        <span>
+          <strong>QUERO CONHECER</strong>
+          <span class="description">Veja as opções para começar seus estudos de inglês com o Teacher Flávio.</span>
+        </span>
+        <span class="entry-icon">✨</span>
+      </a>
+    </div>
   </div>
-  <script src="home.js?v=20260428-1"></script>
+
   <script src="animated_cards.js?v=20260427-5"></script>
 </body>
 </html>
