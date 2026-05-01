@@ -1,5 +1,3 @@
-const PROFESSOR_ADMIN_EMAIL = "flaviofreitas@ufu.br";
-
 async function getCurrentHomeUser() {
   if (!window.Auth || !Auth.isConfigured()) return null;
   const session = await Auth.getSession();
@@ -37,9 +35,7 @@ async function updateProfessorAdminLinkVisibility() {
   professorAdminLink.style.display = "none";
 
   try {
-    const user = await getCurrentHomeUser();
-    const email = user && user.email ? user.email.toLowerCase() : "";
-    if (email === PROFESSOR_ADMIN_EMAIL) {
+    if (window.Auth && Auth.isTeacherAdmin && await Auth.isTeacherAdmin()) {
       professorAdminLink.style.display = "";
     }
   } catch (error) {
