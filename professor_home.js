@@ -1,8 +1,4 @@
-let currentProfessorSession = null;
-
-function redirectProfessorToLogin() {
-  window.location.href = "login.html?next=" + encodeURIComponent("professor.html");
-}
+let currentProfessorUser = null;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -26,13 +22,10 @@ async function guardProfessorHome() {
     return;
   }
 
-  currentProfessorSession = await Auth.getSession();
-  if (!currentProfessorSession || !currentProfessorSession.user) {
-    redirectProfessorToLogin();
-    return;
-  }
+  currentProfessorUser = await Auth.requireTeacherAdmin("/professor/");
+  if (!currentProfessorUser) return;
 
-  if (status) status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
+  if (status) status.textContent = "Professor autenticado: " + currentProfessorUser.email + ".";
   document.body.classList.remove("auth-checking");
 }
 
