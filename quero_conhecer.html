@@ -25,13 +25,7 @@
     @keyframes drift1 { to { transform:translate(60px,80px); } }
     @keyframes drift2 { to { transform:translate(-60px,-60px); } }
     @keyframes fadeUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes flyAcross {
-      0% { transform:translate3d(-18vw,0,0) rotate(2deg); opacity:0; }
-      8% { opacity:.92; }
-      50% { transform:translate3d(48vw,18px,0) rotate(-3deg); opacity:.95; }
-      92% { opacity:.92; }
-      100% { transform:translate3d(118vw,-8px,0) rotate(2deg); opacity:0; }
-    }
+    @keyframes fly { 0% { transform:translateX(0) rotate(-5deg); } 100% { transform:translateX(12px) rotate(5deg); } }
     @keyframes pulseRed {
       0% { transform:scale(1); box-shadow:0 0 0 0 rgba(232,34,42,.68),0 12px 32px rgba(232,34,42,.42); }
       70% { transform:scale(1.045); box-shadow:0 0 0 16px rgba(232,34,42,0),0 18px 42px rgba(232,34,42,.55); }
@@ -42,7 +36,6 @@
       70% { transform:scale(1.045); box-shadow:0 0 0 16px rgba(255,224,102,0),0 18px 42px rgba(0,0,0,.32); }
       100% { transform:scale(1); box-shadow:0 0 0 0 rgba(255,224,102,0),0 12px 30px rgba(0,0,0,.25); }
     }
-    header, .hero, .video-wrapper, .new-class-section, .course-benefits-section, .availability-section, .instructor-section, .cta-wrapper, .trial-cta-wrapper { position:relative; z-index:2; }
     header { display:flex; justify-content:flex-end; align-items:center; padding:22px 40px; gap:20px; }
     .btn-alunos {
       background:var(--accent-red); color:var(--white); font-family:'Montserrat',sans-serif; font-weight:700;
@@ -51,10 +44,7 @@
       text-decoration:none; display:inline-flex; align-items:center; justify-content:center;
     }
     .btn-alunos:hover { transform:translateY(-2px); box-shadow:0 7px 24px rgba(232,34,42,.6); }
-    .flying-plane {
-      position:fixed; top:88px; left:0; width:clamp(58px,7vw,104px); height:auto; pointer-events:none; z-index:1;
-      filter:drop-shadow(0 8px 18px rgba(0,0,0,.32)); animation:flyAcross 18s linear infinite; opacity:.92;
-    }
+    .plane { font-size:2.4rem; animation:fly 3.5s ease-in-out infinite alternate; filter:drop-shadow(0 2px 8px rgba(0,0,0,.3)); }
     .hero { display:flex; flex-direction:column; align-items:center; text-align:center; padding:40px 24px 20px; }
     .hero-tag {
       background:rgba(255,255,255,.15); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.25);
@@ -132,13 +122,9 @@
     .section-label { max-width:680px; margin:0 auto 14px; font-size:clamp(1rem,2vw,1.12rem); font-weight:800; line-height:1.5; color:rgba(255,255,255,.95); }
     .instagram-card { max-width:680px; margin:26px auto 60px; }
     .instagram-text { margin-bottom:18px; font-weight:800; }
-    @media (prefers-reduced-motion:reduce) {
-      .flying-plane { animation:none; transform:translateX(72vw) rotate(2deg); opacity:.55; }
-    }
     @media (max-width:640px) { .benefits-list, .languages-list { grid-template-columns:1fr; } }
     @media (max-width:520px) {
       header { padding:16px 20px; }
-      .flying-plane { top:78px; width:clamp(50px,18vw,76px); }
       .hero h1 { font-size:1.55rem; }
       .new-class-content, .course-benefits-card, .availability-card, .investment-card, .instructor-card, .instagram-card { padding:28px 18px; }
       .instructor-photo-card { padding:8px; }
@@ -151,10 +137,9 @@
   </style>
 </head>
 <body>
-  <img src="file_000000000c38720e9620f98d73f12f1d.png" alt="Avião voando" class="flying-plane" aria-hidden="true">
-
   <header>
     <a class="btn-alunos" href="/login.html?next=area_do_estudante.html">Área de alunos</a>
+    <span class="plane">✈️</span>
   </header>
 
   <section class="hero">
