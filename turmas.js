@@ -1,8 +1,4 @@
-let currentProfessorSession = null;
-
-function redirectToLogin() {
-  window.location.href = "login.html?next=" + encodeURIComponent("turmas.html");
-}
+let currentProfessorUser = null;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -124,13 +120,10 @@ async function guardPage() {
     return;
   }
 
-  currentProfessorSession = await Auth.getSession();
-  if (!currentProfessorSession || !currentProfessorSession.user) {
-    redirectToLogin();
-    return;
-  }
+  currentProfessorUser = await Auth.requireTeacherAdmin("/turmas/");
+  if (!currentProfessorUser) return;
 
-  status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
+  status.textContent = "Professor autenticado: " + currentProfessorUser.email + ".";
   document.body.classList.remove("auth-checking");
   await renderClasses();
 }
