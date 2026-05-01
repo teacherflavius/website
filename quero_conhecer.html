@@ -324,6 +324,26 @@
       margin-bottom: 24px;
     }
 
+    .instructor-photo-card {
+      max-width: 780px;
+      margin: 0 auto 26px;
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 26px;
+      padding: 12px;
+      background: rgba(255,255,255,0.12);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+      backdrop-filter: blur(7px);
+    }
+
+    .instructor-photo {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 20px;
+      object-fit: cover;
+      box-shadow: 0 14px 36px rgba(0,0,0,0.28);
+    }
+
     .benefits-list {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       max-width: 720px;
@@ -547,6 +567,7 @@
       .investment-card,
       .instructor-card,
       .instagram-card { padding: 28px 18px; }
+      .instructor-photo-card { padding: 8px; }
       .limited-card { width: 100%; padding: 14px 18px; }
       .audience-list,
       .benefits-list,
@@ -659,6 +680,10 @@
   </div>
 
   <section class="instructor-section" aria-labelledby="instructorTitle">
+    <div class="instructor-photo-card">
+      <img src="assets/professor-photo.svg" alt="Foto do professor Flávio em uma paisagem de neve" class="instructor-photo" loading="lazy">
+    </div>
+
     <div class="instructor-card">
       <h2 id="instructorTitle">Sobre o professor</h2>
 
