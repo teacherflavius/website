@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pré-matrículas - Teacher Flávio</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js?v=20260430-4"></script>
+  <script src="auth.js?v=20260430-4"></script>
+  <link rel="stylesheet" href="professor.css?v=20260430-4">
+  <style>
+    body { align-items: flex-start; }
+    .container { max-width: 980px; }
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    label { color: #cbd5e1; font-size: 13px; font-weight: bold; letter-spacing: 0.3px; }
+    input, textarea { width: 100%; margin-top: 6px; border: 1px solid rgba(255,255,255,0.12); background: rgba(15,23,42,0.72); color: #f1f5f9; border-radius: 12px; padding: 12px 14px; font-family: Georgia, serif; font-size: 14px; outline: none; }
+    textarea { min-height: 84px; resize: vertical; }
+    input:focus, textarea:focus { border-color: rgba(129,140,248,0.7); box-shadow: 0 0 0 3px rgba(129,140,248,0.12); }
+    .primary-button, .secondary-button { border: 1.5px solid rgba(129,140,248,0.45); background: rgba(129,140,248,0.10); color: #c4b5fd; border-radius: 12px; padding: 12px 15px; font-family: Georgia, serif; font-size: 13px; font-weight: bold; cursor: pointer; letter-spacing: 0.4px; }
+    .primary-button:hover, .secondary-button:hover { background: rgba(129,140,248,0.18); border-color: rgba(129,140,248,0.75); }
+    .secondary-button { border-color: rgba(148,163,184,0.35); background: rgba(148,163,184,0.08); color: #cbd5e1; }
+    .invite-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 15px; margin-bottom: 12px; }
+    .invite-card strong { display:block; color:#f1f5f9; font-size:16px; margin-bottom:7px; }
+    .invite-card p { color:#cbd5e1; font-size:13px; line-height:1.55; margin-bottom:5px; word-break:break-word; }
+    .code { display:inline-block; padding:4px 8px; border-radius:8px; background:rgba(129,140,248,0.12); color:#c4b5fd; border:1px solid rgba(129,140,248,0.35); font-family:monospace; letter-spacing:1px; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .status-pill { display:inline-block; padding:3px 8px; border-radius:999px; font-size:12px; border:1px solid rgba(251,191,36,0.3); color:#fde68a; background:rgba(251,191,36,0.1); }
+    .status-pill.completed { border-color:rgba(110,231,183,0.3); color:#6ee7b7; background:rgba(110,231,183,0.1); }
+    .feedback { color:#94a3b8; font-size:13px; line-height:1.5; margin-top:10px; }
+    .feedback.success { color:#6ee7b7; }
+    .feedback.error { color:#fca5a5; }
+  </style>
+</head>
+<body class="auth-checking">
+  <div class="container">
+    <div class="top-links">
+      <a class="top-link" href="professor.html">ÁREA DO PROFESSOR</a>
+      <a class="top-link" href="/">HOME</a>
+    </div>
+
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Pré-matrículas</h1>
+      <div id="adminStatus" class="status">Verificando credenciais de professor...</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <section class="panel">
+      <h2>Criar convite de matrícula</h2>
+      <form id="inviteForm" class="form-grid">
+        <label>
+          Nome do aluno
+          <input id="studentName" type="text" placeholder="Nome completo ou nome provisório" required />
+        </label>
+        <label>
+          Observações internas, opcional
+          <textarea id="notes" placeholder="Ex.: aluno indicado por..., turma pretendida, combinado de pagamento etc."></textarea>
+        </label>
+        <button id="submitButton" class="primary-button" type="submit">CRIAR CONVITE</button>
+        <div id="formFeedback" class="feedback"></div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Convites criados</h2>
+      <div id="inviteList" class="empty">Carregando convites...</div>
+    </section>
+  </div>
+
+  <script>
+    let currentProfessorSession = null;
+    let invites = [];
+
+    function redirectProfessorToLogin() {
+      window.location.href = "login.html?next=" + encodeURIComponent("pre-matriculas.html");
+    }
+
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    async function waitForProfessorAuthResources() {
+      for (let i = 0; i < 10; i++) {
+        if (window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured()) return true;
+        await sleep(150);
+      }
+      return !!(window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured());
+    }
+
+    function generateInviteCode() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let code = "TF-";
+      for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+
+    function setFeedback(message, type) {
+      const feedback = document.getElementById("formFeedback");
+      feedback.textContent = message || "";
+      feedback.className = "feedback" + (type ? " " + type : "");
+    }
+
+    function inviteLink(code) {
+      return window.location.origin + "/concluir-matricula.html?codigo=" + encodeURIComponent(code);
+    }
+
+    async function verifyTeacherAdmin() {
+      const client = Auth.getClient();
+      const response = await client.rpc("is_teacher_admin");
+      if (response.error) throw response.error;
+      return response.data === true;
+    }
+
+    async function loadInvites() {
+      const client = Auth.getClient();
+      const response = await client
+        .from("student_enrollment_invites")
+        .select("id,invite_code,student_name,notes,status,email,whatsapp,created_at,completed_at")
+        .order("created_at", { ascending: false });
+      if (response.error) throw response.error;
+      invites = response.data || [];
+      renderInvites();
+    }
+
+    function renderInvites() {
+      const target = document.getElementById("inviteList");
+      if (!invites.length) {
+        target.className = "empty";
+        target.innerHTML = "Nenhum convite foi criado ainda.";
+        return;
+      }
+
+      target.className = "";
+      target.innerHTML = invites.map(function(invite) {
+        const code = escapeHtml(invite.invite_code);
+        const link = inviteLink(invite.invite_code);
+        const completed = invite.status === "completed";
+        return '<article class="invite-card">' +
+          '<strong>' + escapeHtml(invite.student_name) + ' <span class="status-pill ' + (completed ? 'completed' : '') + '">' + escapeHtml(invite.status) + '</span></strong>' +
+          '<p><b>Código:</b> <span class="code">' + code + '</span></p>' +
+          '<p><b>Link:</b> ' + escapeHtml(link) + '</p>' +
+          (invite.email ? '<p><b>E-mail concluído:</b> ' + escapeHtml(invite.email) + '</p>' : '') +
+          (invite.whatsapp ? '<p><b>WhatsApp:</b> ' + escapeHtml(invite.whatsapp) + '</p>' : '') +
+          (invite.notes ? '<p><b>Observações:</b> ' + escapeHtml(invite.notes) + '</p>' : '') +
+          '<div class="actions">' +
+            '<button class="secondary-button" type="button" data-copy-link="' + escapeHtml(link) + '">COPIAR LINK</button>' +
+            '<button class="secondary-button" type="button" data-copy-code="' + code + '">COPIAR CÓDIGO</button>' +
+          '</div>' +
+        '</article>';
+      }).join("");
+
+      document.querySelectorAll("[data-copy-link]").forEach(function(button) {
+        button.addEventListener("click", function() { copyText(button.dataset.copyLink); });
+      });
+      document.querySelectorAll("[data-copy-code]").forEach(function(button) {
+        button.addEventListener("click", function() { copyText(button.dataset.copyCode); });
+      });
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        setFeedback("Copiado.", "success");
+      } catch (error) {
+        setFeedback("Não foi possível copiar automaticamente. Copie manualmente o texto exibido.", "error");
+      }
+    }
+
+    async function createInvite(event) {
+      event.preventDefault();
+      const client = Auth.getClient();
+      const button = document.getElementById("submitButton");
+      const studentName = document.getElementById("studentName").value.trim();
+      const notes = document.getElementById("notes").value.trim();
+      const code = generateInviteCode();
+
+      button.disabled = true;
+      setFeedback("Criando convite...", "");
+
+      try {
+        const response = await client.from("student_enrollment_invites").insert({
+          invite_code: code,
+          student_name: studentName,
+          notes: notes || null,
+          status: "pending",
+          created_by: currentProfessorSession.user.id
+        });
+        if (response.error) throw response.error;
+        document.getElementById("inviteForm").reset();
+        setFeedback("Convite criado: " + inviteLink(code), "success");
+        await loadInvites();
+      } catch (error) {
+        setFeedback("Erro ao criar convite. Execute supabase_pre_matriculas.sql no Supabase e tente novamente.", "error");
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function guardPage() {
+      const status = document.getElementById("adminStatus");
+      const resourcesReady = await waitForProfessorAuthResources();
+      if (!resourcesReady) {
+        status.textContent = "Não foi possível carregar a autenticação. Atualize a página ou limpe o cache do navegador.";
+        document.body.classList.remove("auth-checking");
+        return;
+      }
+
+      currentProfessorSession = await Auth.getSession();
+      if (!currentProfessorSession || !currentProfessorSession.user) {
+        redirectProfessorToLogin();
+        return;
+      }
+
+      try {
+        const isAdmin = await verifyTeacherAdmin();
+        if (!isAdmin) {
+          status.textContent = "Acesso negado. Este usuário não está cadastrado como professor.";
+          document.body.classList.remove("auth-checking");
+          return;
+        }
+        status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
+        document.body.classList.remove("auth-checking");
+        await loadInvites();
+      } catch (error) {
+        status.textContent = "Não foi possível carregar as pré-matrículas. Execute supabase_pre_matriculas.sql no Supabase.";
+        document.body.classList.remove("auth-checking");
+      }
+    }
+
+    document.getElementById("inviteForm").addEventListener("submit", createInvite);
+    guardPage();
+  </script>
+  <script src="animated_cards.js?v=20260430-4"></script>
+</body>
+</html>
