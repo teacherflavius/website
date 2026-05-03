@@ -26,14 +26,32 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
-function isEnrolled(student) {
+function getStudentRefId(student) {
+  return String(student.student_ref_id || student.user_id || student.id || "");
+}
+
+function getStudentRefType(student) {
+  return String(student.student_ref_type || (student.user_id ? "user" : "invite"));
+}
+
+function getStudentMapKey(refType, refId) {
+  return String(refType || "user") + ":" + String(refId || "");
+}
+
+function isPreEnrolled(student) {
+  return getStudentRefType(student) === "invite" || student.pre_enrollment_status === "pending";
+}
+
+function isVisibleStudent(student) {
   return (
     student.enrolled === true ||
     student.enrolled === "true" ||
     !!student.enrollment_code ||
     !!student.email ||
     !!student.user_id ||
-    !!student.id
+    !!student.id ||
+    !!student.invite_id ||
+    student.pre_enrollment_status === "pending"
   );
 }
 
@@ -75,8 +93,9 @@ function formatCreatedAt(value) {
   return date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-function getStudentClassNames(userId) {
-  const classes = studentClassMap.get(String(userId)) || [];
+function getStudentClassNames(student) {
+  const key = getStudentMapKey(getStudentRefType(student), getStudentRefId(student));
+  const classes = studentClassMap.get(key) || [];
   return classes.length ? classes.join(", ") : "Nenhuma turma atribuída";
 }
 
@@ -104,11 +123,13 @@ async function loadStudentClassMap() {
     if (response.error) throw response.error;
 
     (response.data || []).forEach(function (row) {
-      const userId = String(row.user_id);
+      const refId = row.student_ref_id || row.user_id || row.invite_id;
+      const refType = row.student_ref_type || (row.user_id ? "user" : "invite");
+      const key = getStudentMapKey(refType, refId);
       const className = classItem.class_name || ("Turma " + classItem.class_number);
-      const current = map.get(userId) || [];
+      const current = map.get(key) || [];
       if (!current.includes(className)) current.push(className);
-      map.set(userId, current);
+      map.set(key, current);
     });
   }
 
@@ -136,8 +157,8 @@ async function deleteStudent(userId, studentName, button) {
   }
 }
 
-function openClassAssignmentModal(userId, studentName) {
-  selectedStudentForClass = { userId: userId, studentName: studentName };
+function openClassAssignmentModal(refId, refType, studentName) {
+  selectedStudentForClass = { refId: refId, refType: refType, studentName: studentName };
   const modal = document.getElementById("classAssignmentModal");
   const nameLabel = document.getElementById("classAssignmentStudentName");
   const message = document.getElementById("classAssignmentMessage");
@@ -194,9 +215,10 @@ async function saveClassAssignment() {
 
   try {
     const client = Auth.getClient();
-    const response = await client.rpc("add_teacher_class_student", {
+    const response = await client.rpc("add_teacher_class_student_by_ref", {
       target_class_number: classNumber,
-      target_user_id: selectedStudentForClass.userId
+      target_student_ref_id: selectedStudentForClass.refId,
+      target_student_ref_type: selectedStudentForClass.refType
     });
     if (response.error) throw response.error;
 
@@ -205,7 +227,7 @@ async function saveClassAssignment() {
     closeClassAssignmentModal();
   } catch (error) {
     message.className = "error";
-    message.textContent = "Não foi possível atribuir a turma: " + (error.message || "erro desconhecido") + ". Reexecute supabase_turmas.sql no Supabase.";
+    message.textContent = "Não foi possível atribuir a turma: " + (error.message || "erro desconhecido") + ". Execute supabase_pre_matriculas_turmas.sql no Supabase.";
   } finally {
     button.disabled = false;
     button.textContent = "SALVAR TURMA";
@@ -221,38 +243,51 @@ function attachActionButtons() {
 
   document.querySelectorAll(".assign-class-button").forEach(function (button) {
     button.addEventListener("click", function () {
-      openClassAssignmentModal(button.dataset.userId, button.datasetStudentName || button.dataset.studentName || "Aluno");
+      openClassAssignmentModal(button.dataset.refId, button.dataset.refType, button.dataset.studentName || "Aluno");
     });
   });
 }
 
 function renderProfileCard(student) {
-  const enrolled = isEnrolled(student);
-  const userId = student.user_id || student.id || "";
+  const preEnrolled = isPreEnrolled(student);
+  const refId = getStudentRefId(student);
+  const refType = getStudentRefType(student);
+  const userId = student.user_id || "";
   const studentName = student.name || student.email || "Aluno sem nome";
-  const assignedClasses = getStudentClassNames(userId);
+  const assignedClasses = getStudentClassNames(student);
+  const pillLabel = preEnrolled ? "Pré-matriculado" : "Matriculado";
+  const sourceLabel = preEnrolled ? "Pré-matrícula por convite" : (student.source || "Não informado");
+
+  const editButton = userId
+    ? '<a class="delete-button" href="editar_aluno.html?id=' + encodeURIComponent(userId) + '" style="display:inline-flex; justify-content:center; text-decoration:none; border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">EDITAR DADOS</a>'
+    : '<a class="delete-button" href="pre-matriculas.html" style="display:inline-flex; justify-content:center; text-decoration:none; border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">VER CONVITE</a>';
+
+  const deleteButton = userId
+    ? '<button class="delete-button delete-student-button" type="button" data-user-id="' + escapeHtml(userId) + '" data-student-name="' + escapeHtml(studentName) + '" style="border-color:rgba(248,113,113,0.55); background:rgba(248,113,113,0.10); color:#fca5a5;">EXCLUIR ALUNO</button>'
+    : '';
 
   return '<div class="student-card">' +
     '<strong>' + escapeHtml(studentName) +
-      '<span class="pill ' + (enrolled ? '' : 'pending') + '">' + (enrolled ? 'Matriculado' : 'Cadastro sem matrícula confirmada') + '</span>' +
+      '<span class="pill ' + (preEnrolled ? 'pending' : '') + '">' + pillLabel + '</span>' +
     '</strong>' +
     '<p><b>Turma:</b> ' + escapeHtml(assignedClasses) + '</p>' +
-    '<p><b>Número de matrícula:</b> ' + escapeHtml(student.enrollment_code || "Não informado") + '</p>' +
+    '<p><b>Código de convite / matrícula:</b> ' + escapeHtml(student.enrollment_code || "Não informado") + '</p>' +
     '<p><b>Nome completo:</b> ' + escapeHtml(student.name || "Não informado") + '</p>' +
     '<p><b>E-mail:</b> ' + escapeHtml(student.email || "Não informado") + '</p>' +
     '<p><b>CPF:</b> ' + escapeHtml(formatCpf(student.cpf)) + '</p>' +
     '<p><b>WhatsApp:</b> ' + escapeHtml(formatWhatsapp(student.whatsapp)) + '</p>' +
     '<p><b>Chave PIX:</b> ' + escapeHtml(student.pix_key || "Não informado") + '</p>' +
-    '<p><b>ID do usuário:</b> ' + escapeHtml(userId || "Não informado") + '</p>' +
-    '<p><b>Origem do registro:</b> ' + escapeHtml(student.source || "Não informado") + '</p>' +
+    '<p><b>Referência:</b> ' + escapeHtml(refType + ':' + refId) + '</p>' +
+    '<p><b>Origem do registro:</b> ' + escapeHtml(sourceLabel) + '</p>' +
+    '<p><b>Status da pré-matrícula:</b> ' + escapeHtml(student.pre_enrollment_status || (preEnrolled ? "pending" : "completed")) + '</p>' +
     '<p><b>Criado em:</b> ' + escapeHtml(formatCreatedAt(student.created_at)) + '</p>' +
     '<div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08);">' +
       '<p><b>Disponibilidade para aulas:</b></p>' + formatAvailability(student) +
     '</div>' +
     '<div class="student-actions">' +
-      '<button class="delete-button assign-class-button" type="button" data-user-id="' + escapeHtml(userId) + '" data-student-name="' + escapeHtml(studentName) + '" style="border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">TURMA</button>' +
-      '<a class="delete-button" href="editar_aluno.html?id=' + encodeURIComponent(userId) + '" style="display:inline-flex; justify-content:center; text-decoration:none; border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">EDITAR DADOS</a>' +
-      '<button class="delete-button delete-student-button" type="button" data-user-id="' + escapeHtml(userId) + '" data-student-name="' + escapeHtml(studentName) + '" style="border-color:rgba(248,113,113,0.55); background:rgba(248,113,113,0.10); color:#fca5a5;">EXCLUIR ALUNO</button>' +
+      '<button class="delete-button assign-class-button" type="button" data-ref-id="' + escapeHtml(refId) + '" data-ref-type="' + escapeHtml(refType) + '" data-student-name="' + escapeHtml(studentName) + '" style="border-color:rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd;">TURMA</button>' +
+      editButton +
+      deleteButton +
     '</div>' +
   '</div>';
 }
@@ -261,20 +296,20 @@ async function renderStudentProfiles() {
   const list = document.getElementById("studentProfilesList");
   try {
     const students = await loadStudents();
-    const enrolledStudents = students.filter(isEnrolled);
-    updateStudentCount(enrolledStudents.length);
-    if (!enrolledStudents.length) {
+    const visibleStudents = students.filter(isVisibleStudent);
+    updateStudentCount(visibleStudents.length);
+    if (!visibleStudents.length) {
       list.className = "empty";
-      list.textContent = "Nenhum aluno matriculado encontrado.";
+      list.textContent = "Nenhum aluno matriculado ou pré-matriculado encontrado.";
       return;
     }
     list.className = "";
-    list.innerHTML = enrolledStudents.map(renderProfileCard).join("");
+    list.innerHTML = visibleStudents.map(renderProfileCard).join("");
     attachActionButtons();
   } catch (error) {
     updateStudentCount(0);
     list.className = "error";
-    list.textContent = "Não foi possível carregar os perfis dos alunos: " + (error.message || "erro desconhecido") + ". Reexecute o arquivo supabase_professor_admin.sql no Supabase.";
+    list.textContent = "Não foi possível carregar os perfis dos alunos: " + (error.message || "erro desconhecido") + ". Execute supabase_pre_matriculas_turmas.sql no Supabase.";
   }
 }
 
