@@ -5,120 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quadro de Turmas - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260430-5"></script>
-  <script src="auth.js?v=20260430-5"></script>
-  <link rel="stylesheet" href="professor.css?v=20260430-5">
+  <script src="supabase_config.js?v=20260430-6"></script>
+  <script src="auth.js?v=20260430-6"></script>
+  <link rel="stylesheet" href="professor.css?v=20260430-6">
   <style>
     body { align-items: flex-start; }
     .container { max-width: 1180px; }
-    .board-wrap {
-      width: 100%;
-      overflow-x: auto;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 18px;
-      padding: 14px;
-      backdrop-filter: blur(12px);
-    }
-    .classes-board {
-      width: 100%;
-      min-width: 860px;
-      border-collapse: collapse;
-      table-layout: fixed;
-      background: rgba(15,23,42,0.55);
-      color: #f1f5f9;
-    }
-    .classes-board th,
-    .classes-board td {
-      border: 1px solid rgba(203,213,225,0.35);
-      padding: 10px 8px;
-      vertical-align: top;
-      text-align: center;
-    }
-    .classes-board th {
-      background: rgba(148,163,184,0.28);
-      color: #f8fafc;
-      font-size: 13px;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-    }
-    .time-cell {
-      width: 64px;
-      background: rgba(148,163,184,0.22);
-      color: #f8fafc;
-      font-size: 13px;
-      font-weight: bold;
-      white-space: nowrap;
-    }
-    .class-cell {
-      min-height: 76px;
-    }
-    .class-item {
-      display: block;
-      color: #f8fafc;
-      text-decoration: none;
-      border-radius: 12px;
-      padding: 6px 6px 8px;
-      transition: background 0.18s, transform 0.18s;
-    }
-    .class-item:hover {
-      background: rgba(129,140,248,0.12);
-      transform: translateY(-1px);
-    }
-    .class-title {
-      display: block;
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: 6px;
-    }
-    .student-list {
-      display: block;
-      color: #cbd5e1;
-      font-size: 12px;
-      line-height: 1.45;
-      text-align: left;
-    }
-    .student-list.empty-list {
-      text-align: center;
-      color: #94a3b8;
-      font-style: italic;
-    }
-    .student-name {
-      display: block;
-      padding: 2px 0;
-    }
-    .pre-enrolled {
-      color: #fde68a;
-      font-size: 11px;
-    }
-    .dash {
-      color: #94a3b8;
-      font-size: 18px;
-      line-height: 72px;
-    }
-    .legend {
-      color: #94a3b8;
-      font-size: 13px;
-      line-height: 1.6;
-      margin: 0 0 16px;
-      text-align: center;
-    }
-    .error, .empty {
-      color: #fca5a5;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px;
-      padding: 16px;
-      text-align: center;
-      line-height: 1.6;
-    }
+    .board-wrap { width: 100%; overflow-x: auto; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 14px; backdrop-filter: blur(12px); }
+    .classes-board { width: 100%; min-width: 860px; border-collapse: collapse; table-layout: fixed; background: rgba(15,23,42,0.55); color: #f1f5f9; }
+    .classes-board th, .classes-board td { border: 1px solid rgba(203,213,225,0.35); padding: 10px 8px; vertical-align: top; text-align: center; }
+    .classes-board th { background: rgba(148,163,184,0.28); color: #f8fafc; font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase; }
+    .time-cell { width: 64px; background: rgba(148,163,184,0.22); color: #f8fafc; font-size: 13px; font-weight: bold; white-space: nowrap; }
+    .class-cell { min-height: 76px; }
+    .class-item { display: block; color: #f8fafc; text-decoration: none; border-radius: 12px; padding: 6px 6px 8px; transition: background 0.18s, transform 0.18s; }
+    .class-item:hover { background: rgba(129,140,248,0.12); transform: translateY(-1px); }
+    .class-title { display: block; font-size: 14px; font-weight: bold; margin-bottom: 6px; }
+    .student-list { display: block; color: #cbd5e1; font-size: 12px; line-height: 1.45; text-align: left; }
+    .student-list.empty-list { text-align: center; color: #94a3b8; font-style: italic; }
+    .student-name { display: block; padding: 2px 0; }
+    .pre-enrolled { color: #fde68a; font-size: 11px; }
+    .dash { color: #94a3b8; font-size: 18px; line-height: 72px; }
+    .legend { color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 0 0 16px; text-align: center; }
+    .warning { color: #fde68a; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.22); border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.5; margin-bottom: 12px; text-align: center; }
+    .error, .empty { color: #fca5a5; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; text-align: center; line-height: 1.6; }
     .empty { color: #94a3b8; }
-    @media(max-width: 720px) {
-      .container { max-width: 100%; }
-      .board-wrap { padding: 8px; }
-      .classes-board { min-width: 780px; }
-      .classes-board th, .classes-board td { padding: 8px 6px; }
-    }
+    @media(max-width: 720px) { .container { max-width: 100%; } .board-wrap { padding: 8px; } .classes-board { min-width: 780px; } .classes-board th, .classes-board td { padding: 8px 6px; } }
   </style>
 </head>
 <body class="auth-checking">
@@ -137,7 +48,7 @@
 
     <div class="divider"></div>
 
-    <p class="legend">Tabela semanal com todas as turmas criadas pelo professor e a relação de alunos inscritos em cada turma.</p>
+    <p class="legend">Tabela semanal com todas as turmas e a relação de alunos inscritos em cada turma.</p>
 
     <div id="boardContainer" class="board-wrap">
       <div class="empty">Carregando quadro de turmas...</div>
@@ -161,9 +72,11 @@
       "seg-09": 1, "seg-10": 2, "seg-12": 3, "seg-13": 4, "seg-15": 5, "seg-17": 6, "seg-18": 7, "seg-20": 8, "seg-21": 9,
       "ter-09": 10, "ter-10": 11, "ter-12": 12, "ter-13": 13, "ter-15": 14, "ter-17": 15, "ter-18": 16, "ter-20": 17, "ter-21": 18,
       "qua-09": 19, "qua-10": 20, "qua-12": 21, "qua-13": 22, "qua-15": 23, "qua-17": 24, "qua-18": 25, "qua-20": 26, "qua-21": 27,
-      "qui-09": 28, "qui-10": 11, "qui-12": 30, "qui-14": 31, "qui-15": 32, "qui-17": 33, "qui-18": 34, "qui-20": 35, "qui-21": 36,
+      "qui-09": 28, "qui-10": 29, "qui-12": 30, "qui-14": 31, "qui-15": 32, "qui-17": 33, "qui-18": 34, "qui-20": 35, "qui-21": 36,
       "sex-09": 37, "sex-10": 38, "sex-12": 39, "sex-13": 40, "sex-15": 41, "sex-17": 42, "sex-18": 43, "sex-20": 44, "sex-21": 45
     };
+
+    const allBoardClassNumbers = Array.from(new Set(Object.keys(fixedClassLayout).map(function (key) { return fixedClassLayout[key]; }))).sort(function (a, b) { return a - b; });
 
     function redirectToLogin() {
       window.location.href = "login.html?next=" + encodeURIComponent("quadro-de-turmas.html");
@@ -198,19 +111,25 @@
     async function loadTeacherClasses() {
       const client = Auth.getClient();
       const response = await client.rpc("get_teacher_classes");
-      if (response.error) throw response.error;
+      if (response.error) return [];
       return response.data || [];
     }
 
     async function loadClassStudents(classNumber) {
       const client = Auth.getClient();
       const response = await client.rpc("get_teacher_class_students", { target_class_number: Number(classNumber) });
-      if (response.error) throw response.error;
+      if (response.error) return [];
       return response.data || [];
     }
 
     function getClassByNumber(classes, classNumber) {
       return classes.find(function (item) { return Number(item.class_number) === Number(classNumber); });
+    }
+
+    function getClassTitle(classes, classNumber) {
+      const classInfo = getClassByNumber(classes, classNumber);
+      if (classInfo && classInfo.class_name) return classInfo.class_name;
+      return "Turma VIP " + classNumber;
     }
 
     function renderStudentNames(students) {
@@ -219,7 +138,7 @@
       }
 
       return '<span class="student-list">' + students.map(function (student) {
-        const name = student.student_name || student.name || student.student_email || "Aluno sem nome";
+        const name = student.student_name || student.name || student.student_email || student.email || "Aluno sem nome";
         const isPre = student.student_ref_type === "invite" || student.pre_enrollment_status === "pending";
         return '<span class="student-name">' + escapeHtml(name) + (isPre ? ' <span class="pre-enrolled">(pré)</span>' : '') + '</span>';
       }).join("") + '</span>';
@@ -227,9 +146,7 @@
 
     function renderCell(classNumber, classes, studentsByClass) {
       if (!classNumber) return '<td class="class-cell"><span class="dash">-</span></td>';
-      const classInfo = getClassByNumber(classes, classNumber);
-      if (!classInfo) return '<td class="class-cell"><span class="dash">-</span></td>';
-      const title = classInfo.class_name || ("Turma " + classNumber);
+      const title = getClassTitle(classes, classNumber);
       const students = studentsByClass[String(classNumber)] || [];
       return '<td class="class-cell">' +
         '<a class="class-item" href="turma.html?id=' + encodeURIComponent(classNumber) + '">' +
@@ -241,12 +158,6 @@
 
     function renderBoard(classes, studentsByClass) {
       const container = document.getElementById("boardContainer");
-      if (!classes.length) {
-        container.className = "empty";
-        container.textContent = "Nenhuma turma foi criada ainda.";
-        return;
-      }
-
       const header = '<tr><th class="time-cell"></th>' + boardDays.map(function (day) {
         return '<th>' + day.label + '</th>';
       }).join("") + '</tr>';
@@ -266,8 +177,7 @@
     async function loadBoard() {
       const classes = await loadTeacherClasses();
       const studentsByClass = {};
-      for (const classItem of classes) {
-        const classNumber = Number(classItem.class_number);
+      for (const classNumber of allBoardClassNumbers) {
         studentsByClass[String(classNumber)] = await loadClassStudents(classNumber);
       }
       renderBoard(classes, studentsByClass);
@@ -309,6 +219,6 @@
 
     guardPage();
   </script>
-  <script src="animated_cards.js?v=20260430-5"></script>
+  <script src="animated_cards.js?v=20260430-6"></script>
 </body>
 </html>
