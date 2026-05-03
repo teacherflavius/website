@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Concluir Matrícula - Teacher Flávio</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js?v=20260430-4"></script>
+  <script src="auth.js?v=20260430-4"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); padding: 32px 16px 48px; font-family: Georgia, serif; color: #f1f5f9; }
+    .container { width: 100%; max-width: 860px; margin: 0 auto; }
+    .top { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:24px; }
+    .btn, button { display:inline-flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); border:1.5px solid rgba(129,140,248,0.35); border-radius:10px; padding:10px 18px; color:#818cf8; font-size:14px; font-family:Georgia,serif; text-decoration:none; cursor:pointer; }
+    .header { text-align:center; margin-bottom:28px; }
+    .badge { display:inline-block; background:linear-gradient(90deg,#818cf8,#a78bfa); color:#fff; font-size:11px; font-family:monospace; letter-spacing:3px; padding:4px 14px; border-radius:20px; margin-bottom:12px; }
+    h1 { font-size:34px; margin-bottom:8px; }
+    p { color:#94a3b8; line-height:1.6; }
+    .card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:18px; padding:22px; backdrop-filter:blur(12px); margin-bottom:16px; }
+    .card h2 { font-size:20px; margin-bottom:14px; color:#f1f5f9; }
+    .readonly { background:rgba(129,140,248,0.08); border:1px solid rgba(129,140,248,0.22); border-radius:14px; padding:14px; margin-bottom:16px; color:#cbd5e1; }
+    label { display:block; color:#cbd5e1; font-size:13px; margin-bottom:6px; }
+    input { width:100%; background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.12); border-radius:12px; padding:13px 14px; color:#f1f5f9; font-size:15px; font-family:Georgia,serif; margin-bottom:12px; }
+    input:focus { outline:none; border-color:#818cf8; }
+    .field-note { color:#cbd5e1; background:rgba(129,140,248,0.08); border:1px solid rgba(129,140,248,0.22); border-radius:12px; padding:11px 13px; font-size:13px; line-height:1.5; margin:-2px 0 12px; }
+    .availability-block { margin:18px 0; }
+    .availability-title { color:#f1f5f9; font-size:18px; font-weight:bold; margin-bottom:8px; }
+    .availability-help { color:#94a3b8; font-size:13px; line-height:1.5; margin-bottom:14px; }
+    .availability-grid { width:100%; display:grid; grid-template-columns:82px repeat(5,minmax(0,1fr)); gap:8px 6px; align-items:center; }
+    .grid-head { color:#cbd5e1; text-align:center; font-size:13px; font-weight:bold; white-space:nowrap; }
+    .time-label { color:#f1f5f9; font-size:13px; white-space:nowrap; }
+    .slot { display:flex; justify-content:center; align-items:center; min-height:38px; margin:0; }
+    .slot input { position:absolute; opacity:0; width:1px; height:1px; margin:0; }
+    .slot-box { width:28px; height:28px; border:3px solid rgba(203,213,225,0.55); border-radius:7px; background:rgba(255,255,255,0.04); display:inline-flex; align-items:center; justify-content:center; transition:all 0.15s ease; cursor:pointer; }
+    .slot input:checked + .slot-box { background:linear-gradient(135deg,#818cf8,#a78bfa); border-color:#c4b5fd; box-shadow:0 0 0 4px rgba(129,140,248,0.16); }
+    .slot input:checked + .slot-box::after { content:"✓"; color:#fff; font-size:18px; font-weight:bold; }
+    .primary { width:100%; padding:14px; border-radius:12px; border:none; background:linear-gradient(90deg,#818cf8,#a78bfa); color:#fff; font-size:16px; font-weight:bold; margin-top:8px; }
+    .message { min-height:20px; color:#94a3b8; font-size:13px; margin-top:10px; line-height:1.5; }
+    .message.success { color:#6ee7b7; }
+    .message.error { color:#fca5a5; }
+    .hidden { display:none; }
+    @media(max-width:560px){ .availability-grid{grid-template-columns:68px repeat(5,minmax(0,1fr)); gap:8px 3px;} .grid-head,.time-label{font-size:12px;} .slot-box{width:25px;height:25px;} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <a class="btn" href="/">HOME</a>
+      <a class="btn" href="login.html">LOGIN</a>
+    </div>
+
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Concluir Matrícula</h1>
+      <p id="pageStatus">Informe seu código de convite para continuar.</p>
+    </div>
+
+    <div id="codeCard" class="card">
+      <h2>Código de convite</h2>
+      <label for="inviteCode">Código recebido pelo professor</label>
+      <input id="inviteCode" type="text" placeholder="Ex.: TF-ABC123" />
+      <button class="primary" type="button" id="validateCodeButton">VALIDAR CÓDIGO</button>
+      <div id="codeMessage" class="message"></div>
+    </div>
+
+    <div id="authCard" class="card hidden">
+      <h2>Entrar ou criar conta</h2>
+      <p class="field-note">Para concluir a matrícula, você precisa estar conectado. Se ainda não tiver conta, informe seu e-mail e crie uma senha.</p>
+      <label for="email">E-mail</label>
+      <input id="email" type="email" required />
+      <label for="password">Senha</label>
+      <input id="password" type="password" required />
+      <button class="primary" type="button" id="createAccountButton">CRIAR CONTA E CONTINUAR</button>
+      <button class="btn" type="button" id="loginButton" style="width:100%; margin-top:10px;">JÁ TENHO CONTA: ENTRAR</button>
+      <div id="authMessage" class="message"></div>
+    </div>
+
+    <div id="formCard" class="card hidden">
+      <h2>Dados da matrícula</h2>
+      <div class="readonly">
+        <p><b>Aluno pré-cadastrado:</b> <span id="studentNamePreview">Carregando...</span></p>
+        <p><b>Código:</b> <span id="codePreview">Carregando...</span></p>
+      </div>
+
+      <form id="completionForm">
+        <label for="name">Nome completo</label>
+        <input id="name" type="text" required />
+
+        <label for="cpf">CPF</label>
+        <input id="cpf" type="text" inputmode="numeric" maxlength="14" required />
+
+        <label for="whatsapp">WhatsApp</label>
+        <input id="whatsapp" type="tel" inputmode="tel" required />
+
+        <label for="pixKey">Chave PIX</label>
+        <input id="pixKey" type="text" required />
+        <div class="field-note">A chave PIX é usada apenas em situações em que o professor precise fazer reembolso de algum valor para o aluno.</div>
+
+        <div class="availability-block">
+          <div class="availability-title">Disponibilidade para aulas</div>
+          <p class="availability-help">Marque todos os dias e horários, de segunda a sexta, em que você estará disponível para fazer aulas de inglês.</p>
+          <div class="availability-grid" id="availabilityGrid"></div>
+        </div>
+
+        <button class="primary" type="submit">CONCLUIR MATRÍCULA</button>
+        <div id="formMessage" class="message"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentInvite = null;
+    let currentUser = null;
+
+    const availabilityDays = [
+      { key: "seg", label: "Seg" },
+      { key: "ter", label: "Ter" },
+      { key: "qua", label: "Qua" },
+      { key: "qui", label: "Qui" },
+      { key: "sex", label: "Sex" }
+    ];
+    const availabilityFullNames = { seg: "Segunda", ter: "Terça", qua: "Quarta", qui: "Quinta", sex: "Sexta" };
+    const availabilityHours = [
+      { key: "09", label: "9h - 10h" },
+      { key: "10", label: "10h - 11h" },
+      { key: "12", label: "12h - 13h" },
+      { key: "13", label: "13h - 14h" },
+      { key: "15", label: "15h - 16h" },
+      { key: "17", label: "17h - 18h" },
+      { key: "18", label: "18h - 19h" },
+      { key: "20", label: "20h - 21h" },
+      { key: "21", label: "21h - 22h" }
+    ];
+
+    function onlyDigits(value) { return String(value || "").replace(/\D/g, ""); }
+    function formatCpf(value) {
+      const digits = onlyDigits(value).slice(0, 11);
+      return digits.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    }
+    function setMessage(id, text, type) {
+      const message = document.getElementById(id);
+      message.className = "message" + (type ? " " + type : "");
+      message.textContent = text || "";
+    }
+    function getCodeFromUrl() {
+      return new URLSearchParams(window.location.search).get("codigo") || "";
+    }
+    function normalizeCode(code) {
+      return String(code || "").trim().toUpperCase();
+    }
+    function buildAvailabilityGrid() {
+      const grid = document.getElementById("availabilityGrid");
+      grid.innerHTML = '<div></div>' + availabilityDays.map(day => `<div class="grid-head" title="${availabilityFullNames[day.key]}">${day.label}</div>`).join("");
+      availabilityHours.forEach(hour => {
+        grid.insertAdjacentHTML("beforeend", `<div class="time-label">${hour.label}</div>`);
+        availabilityDays.forEach(day => {
+          const id = `availability_${day.key}_${hour.key}`;
+          grid.insertAdjacentHTML("beforeend", `
+            <label class="slot" for="${id}" title="${availabilityFullNames[day.key]}, ${hour.label}">
+              <input type="checkbox" id="${id}" name="availability" data-day="${day.key}" data-hour="${hour.key}" />
+              <span class="slot-box"></span>
+            </label>
+          `);
+        });
+      });
+    }
+    function getAvailability() {
+      const availability = { seg: [], ter: [], qua: [], qui: [], sex: [] };
+      document.querySelectorAll('input[name="availability"]:checked').forEach(input => {
+        availability[input.dataset.day].push(input.dataset.hour);
+      });
+      return availability;
+    }
+    function countAvailabilitySlots(availability) {
+      return Object.keys(availability || {}).reduce((total, day) => total + (Array.isArray(availability[day]) ? availability[day].length : 0), 0);
+    }
+    function showForm() {
+      document.getElementById("authCard").classList.add("hidden");
+      document.getElementById("formCard").classList.remove("hidden");
+      document.getElementById("studentNamePreview").textContent = currentInvite.student_name;
+      document.getElementById("codePreview").textContent = currentInvite.invite_code;
+      document.getElementById("name").value = currentInvite.student_name || "";
+      document.getElementById("pageStatus").textContent = "Complete os dados para finalizar sua matrícula.";
+    }
+    async function refreshUser() {
+      currentUser = await Auth.getUser();
+      return currentUser;
+    }
+    async function validateCode() {
+      const code = normalizeCode(document.getElementById("inviteCode").value);
+      if (!code) {
+        setMessage("codeMessage", "Informe o código de convite.", "error");
+        return;
+      }
+      setMessage("codeMessage", "Validando código...", "");
+      try {
+        const client = Auth.getClient();
+        const response = await client.rpc("get_enrollment_invite_by_code", { target_invite_code: code });
+        if (response.error) throw response.error;
+        if (!response.data || response.data.length === 0) {
+          setMessage("codeMessage", "Código inválido, expirado ou já utilizado.", "error");
+          return;
+        }
+        currentInvite = response.data[0];
+        document.getElementById("inviteCode").value = currentInvite.invite_code;
+        setMessage("codeMessage", "Código validado para " + currentInvite.student_name + ".", "success");
+        await refreshUser();
+        if (currentUser) showForm();
+        else {
+          document.getElementById("authCard").classList.remove("hidden");
+          document.getElementById("pageStatus").textContent = "Código validado. Agora entre ou crie sua conta.";
+        }
+      } catch (error) {
+        setMessage("codeMessage", "Não foi possível validar o código. Execute supabase_pre_matriculas.sql no Supabase.", "error");
+      }
+    }
+    async function createAccount() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      if (!currentInvite) return;
+      setMessage("authMessage", "Criando conta...", "");
+      try {
+        const response = await Auth.signUp(currentInvite.student_name, email, password);
+        await Auth.signIn(email, password).catch(function(){ return null; });
+        await refreshUser();
+        if (!currentUser && response && response.user) currentUser = response.user;
+        setMessage("authMessage", "Conta criada. Complete os dados da matrícula.", "success");
+        showForm();
+      } catch (error) {
+        setMessage("authMessage", error.message || "Não foi possível criar a conta.", "error");
+      }
+    }
+    async function loginAccount() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      if (!currentInvite) return;
+      setMessage("authMessage", "Entrando...", "");
+      try {
+        await Auth.signIn(email, password);
+        await refreshUser();
+        setMessage("authMessage", "Login realizado.", "success");
+        showForm();
+      } catch (error) {
+        setMessage("authMessage", error.message || "Não foi possível entrar.", "error");
+      }
+    }
+    async function completeEnrollment(event) {
+      event.preventDefault();
+      if (!currentInvite) return;
+      const availability = getAvailability();
+      if (countAvailabilitySlots(availability) === 0) {
+        setMessage("formMessage", "Selecione pelo menos um horário disponível.", "error");
+        return;
+      }
+      setMessage("formMessage", "Concluindo matrícula...", "");
+      try {
+        const user = await refreshUser();
+        if (!user) {
+          setMessage("formMessage", "Faça login antes de concluir a matrícula.", "error");
+          document.getElementById("authCard").classList.remove("hidden");
+          return;
+        }
+        const client = Auth.getClient();
+        const response = await client.rpc("complete_enrollment_invite", {
+          target_invite_code: currentInvite.invite_code,
+          target_name: document.getElementById("name").value.trim(),
+          target_cpf: document.getElementById("cpf").value.trim(),
+          target_whatsapp: document.getElementById("whatsapp").value.trim(),
+          target_pix_key: document.getElementById("pixKey").value.trim(),
+          target_availability: availability
+        });
+        if (response.error) throw response.error;
+        setMessage("formMessage", "Matrícula concluída com sucesso. Redirecionando para a Área do Estudante...", "success");
+        setTimeout(function(){ window.location.href = "area_do_estudante.html"; }, 1200);
+      } catch (error) {
+        setMessage("formMessage", error.message || "Não foi possível concluir a matrícula.", "error");
+      }
+    }
+
+    document.getElementById("cpf").addEventListener("input", function(){ this.value = formatCpf(this.value); });
+    document.getElementById("validateCodeButton").addEventListener("click", validateCode);
+    document.getElementById("createAccountButton").addEventListener("click", createAccount);
+    document.getElementById("loginButton").addEventListener("click", loginAccount);
+    document.getElementById("completionForm").addEventListener("submit", completeEnrollment);
+    buildAvailabilityGrid();
+
+    const initialCode = getCodeFromUrl();
+    if (initialCode) {
+      document.getElementById("inviteCode").value = initialCode;
+      validateCode();
+    }
+  </script>
+</body>
+</html>
