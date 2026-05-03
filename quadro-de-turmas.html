@@ -132,7 +132,7 @@
       });
 
       return '<div class="extra-section">' +
-        '<h2>Outras turmas cadastradas no Supabase</h2>' +
+        '<h2>Turmas cadastradas</h2>' +
         '<div class="extra-grid">' + sortedClasses.map(function (item) {
           const classNumber = Number(item.class_number);
           return '<a class="extra-card class-item" href="turma.html?id=' + encodeURIComponent(classNumber) + '">' +
