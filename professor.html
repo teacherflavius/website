@@ -5,9 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Área do Professor - Teacher Flávio</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase_config.js?v=20260430-4"></script>
-  <script src="auth.js?v=20260430-4"></script>
-  <link rel="stylesheet" href="professor.css?v=20260430-4">
+  <script src="supabase_config.js?v=20260503-4"></script>
+  <script src="auth.js?v=20260503-4"></script>
+  <link rel="stylesheet" href="professor.css?v=20260503-4">
+  <style>
+    .reorder-help {
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: center;
+      margin: -4px 0 18px;
+    }
+    .menu-grid.reorder-enabled .menu-button {
+      cursor: grab;
+      user-select: none;
+    }
+    .menu-grid.reorder-enabled .menu-button:active {
+      cursor: grabbing;
+    }
+    .menu-button.dragging {
+      opacity: 0.45;
+      transform: scale(0.98);
+      border-color: rgba(129,140,248,0.75);
+    }
+    .menu-button.drag-over {
+      border-color: rgba(110,231,183,0.75);
+      background: rgba(110,231,183,0.08);
+    }
+  </style>
 </head>
 <body class="auth-checking">
   <div class="container">
@@ -24,44 +49,148 @@
 
     <div class="divider"></div>
 
-    <div class="menu-grid">
-      <a class="menu-button" href="/perfil-dos-alunos/">
+    <p class="reorder-help">Arraste os cards para reorganizar a Área do Professor. A ordem fica salva neste navegador.</p>
+
+    <div id="professorMenuGrid" class="menu-grid reorder-enabled">
+      <a class="menu-button" href="/perfil-dos-alunos/" draggable="true" data-card-id="alunos">
         <span><span class="icon">🪪</span>ALUNOS</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button" href="pre-matriculas.html">
+      <a class="menu-button" href="pre-matriculas.html" draggable="true" data-card-id="pre-matriculas">
         <span><span class="icon">🎟️</span>PRÉ-MATRÍCULAS</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button" href="/turmas/">
+      <a class="menu-button" href="/turmas/" draggable="true" data-card-id="turmas">
         <span><span class="icon">🏫</span>TURMAS</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button" href="quadro-de-turmas.html">
+      <a class="menu-button" href="quadro-de-turmas.html" draggable="true" data-card-id="quadro-de-turmas">
         <span><span class="icon">📊</span>QUADRO DE TURMAS</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button" href="/criar-exercicio/">
+      <a class="menu-button" href="/criar-exercicio/" draggable="true" data-card-id="criar-exercicio">
         <span><span class="icon">➕</span>CRIAR EXERCÍCIO</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button" href="aulas-de-gramatica-interface-do-professor.html">
+      <a class="menu-button" href="aulas-de-gramatica-interface-do-professor.html" draggable="true" data-card-id="aulas-de-gramatica">
         <span><span class="icon">📚</span>AULAS DE GRAMÁTICA</span>
         <span class="arrow">›</span>
       </a>
 
-      <a class="menu-button" href="/exercicios-dos-alunos/">
+      <a class="menu-button" href="/exercicios-dos-alunos/" draggable="true" data-card-id="exercicios-dos-alunos">
         <span><span class="icon">📝</span>EXERCÍCIOS FEITOS PELOS ALUNOS</span>
         <span class="arrow">›</span>
       </a>
     </div>
   </div>
-  <script src="professor_home.js?v=20260430-4"></script>
-  <script src="animated_cards.js?v=20260430-4"></script>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = "teacherFlavius.professorCardOrder.v1";
+      const grid = document.getElementById("professorMenuGrid");
+      let draggedCard = null;
+      let dragStarted = false;
+
+      function getCards() {
+        return Array.from(grid.querySelectorAll(".menu-button[data-card-id]"));
+      }
+
+      function saveOrder() {
+        const order = getCards().map(function (card) { return card.dataset.cardId; });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(order));
+      }
+
+      function applySavedOrder() {
+        try {
+          const savedOrder = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          if (!Array.isArray(savedOrder) || !savedOrder.length) return;
+          const cardsById = new Map(getCards().map(function (card) { return [card.dataset.cardId, card]; }));
+          savedOrder.forEach(function (id) {
+            const card = cardsById.get(id);
+            if (card) grid.appendChild(card);
+          });
+          getCards().forEach(function (card) {
+            if (!savedOrder.includes(card.dataset.cardId)) grid.appendChild(card);
+          });
+        } catch (error) {}
+      }
+
+      function getInsertionTarget(mouseY) {
+        const candidates = getCards().filter(function (card) { return card !== draggedCard; });
+        let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+
+        candidates.forEach(function (card) {
+          const box = card.getBoundingClientRect();
+          const offset = mouseY - box.top - box.height / 2;
+          if (offset < 0 && offset > closest.offset) {
+            closest = { offset: offset, element: card };
+          }
+        });
+
+        return closest.element;
+      }
+
+      function clearDragOverState() {
+        getCards().forEach(function (card) { card.classList.remove("drag-over"); });
+      }
+
+      function setupDragging() {
+        getCards().forEach(function (card) {
+          card.addEventListener("dragstart", function (event) {
+            draggedCard = card;
+            dragStarted = true;
+            card.classList.add("dragging");
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", card.dataset.cardId);
+          });
+
+          card.addEventListener("dragend", function () {
+            if (draggedCard) draggedCard.classList.remove("dragging");
+            draggedCard = null;
+            clearDragOverState();
+            saveOrder();
+            setTimeout(function () { dragStarted = false; }, 0);
+          });
+
+          card.addEventListener("click", function (event) {
+            if (dragStarted) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          });
+        });
+
+        grid.addEventListener("dragover", function (event) {
+          event.preventDefault();
+          if (!draggedCard) return;
+          const target = getInsertionTarget(event.clientY);
+          clearDragOverState();
+          if (target) {
+            target.classList.add("drag-over");
+            grid.insertBefore(draggedCard, target);
+          } else {
+            grid.appendChild(draggedCard);
+          }
+        });
+
+        grid.addEventListener("drop", function (event) {
+          event.preventDefault();
+          clearDragOverState();
+          saveOrder();
+        });
+      }
+
+      applySavedOrder();
+      setupDragging();
+    })();
+  </script>
+
+  <script src="professor_home.js?v=20260503-4"></script>
+  <script src="animated_cards.js?v=20260503-4"></script>
 </body>
 </html>
