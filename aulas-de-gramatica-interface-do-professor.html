@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interface do Professor - Aulas de Gramática</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js?v=20260430-4"></script>
+  <script src="auth.js?v=20260430-4"></script>
+  <link rel="stylesheet" href="professor.css?v=20260430-4">
+  <style>
+    body { align-items: flex-start; }
+    .container { max-width: 980px; }
+    .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    label { color: #cbd5e1; font-size: 13px; font-weight: bold; letter-spacing: 0.3px; }
+    input { width: 100%; margin-top: 6px; border: 1px solid rgba(255,255,255,0.12); background: rgba(15,23,42,0.72); color: #f1f5f9; border-radius: 12px; padding: 12px 14px; font-family: Georgia, serif; font-size: 14px; outline: none; }
+    input:focus { border-color: rgba(129,140,248,0.7); box-shadow: 0 0 0 3px rgba(129,140,248,0.12); }
+    .primary-button, .secondary-button { border: 1.5px solid rgba(129,140,248,0.45); background: rgba(129,140,248,0.10); color: #c4b5fd; border-radius: 12px; padding: 12px 15px; font-family: Georgia, serif; font-size: 13px; font-weight: bold; cursor: pointer; letter-spacing: 0.4px; }
+    .primary-button:hover, .secondary-button:hover { background: rgba(129,140,248,0.18); border-color: rgba(129,140,248,0.75); }
+    .secondary-button { border-color: rgba(148,163,184,0.35); background: rgba(148,163,184,0.08); color: #cbd5e1; }
+    .button-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+    .lesson-admin-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 15px; margin-bottom: 12px; }
+    .lesson-admin-card strong { display: block; color: #f1f5f9; font-size: 16px; margin-bottom: 7px; }
+    .lesson-admin-card p { color: #cbd5e1; font-size: 13px; line-height: 1.55; margin-bottom: 4px; word-break: break-word; }
+    .card-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .edit-button { border: 1px solid rgba(129,140,248,0.45); background: rgba(129,140,248,0.10); color: #c4b5fd; border-radius: 10px; padding: 9px 12px; font-family: Georgia, serif; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .delete-button { width: auto; margin-top: 0; padding: 9px 12px; }
+    .feedback { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-top: 10px; }
+    .feedback.success { color: #6ee7b7; }
+    .feedback.error { color: #fca5a5; }
+  </style>
+</head>
+<body class="auth-checking">
+  <div class="container">
+    <div class="top-links">
+      <a class="top-link" href="professor.html">ÁREA DO PROFESSOR</a>
+      <a class="top-link" href="aulas-de-gramatica.html">VER PÁGINA DO ALUNO</a>
+      <a class="top-link" href="/">HOME</a>
+    </div>
+
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Aulas de Gramática</h1>
+      <div id="adminStatus" class="status">Verificando credenciais de professor...</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <section class="panel">
+      <h2 id="formTitle">Criar nova lição de gramática</h2>
+      <form id="lessonForm" class="form-grid">
+        <input type="hidden" id="lessonId" />
+        <label>
+          Título da lição
+          <input id="lessonTitle" type="text" placeholder="Ex.: Simple Present - Aula 1" required />
+        </label>
+        <label>
+          Link do vídeo
+          <input id="videoUrl" type="url" placeholder="Cole aqui o link do YouTube, Google Drive ou outro vídeo" required />
+        </label>
+        <label>
+          Link dos exercícios
+          <input id="exerciseUrl" type="url" placeholder="Cole aqui o link dos exercícios" required />
+        </label>
+        <div class="button-row">
+          <button id="submitButton" class="primary-button" type="submit">SALVAR LIÇÃO</button>
+          <button id="cancelEditButton" class="secondary-button" type="button" style="display:none;">CANCELAR EDIÇÃO</button>
+        </div>
+        <div id="formFeedback" class="feedback"></div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Histórico de lições criadas</h2>
+      <div id="lessonsHistory" class="empty">Carregando lições...</div>
+    </section>
+  </div>
+
+  <script>
+    let currentProfessorSession = null;
+    let grammarLessons = [];
+
+    function redirectProfessorToLogin() {
+      window.location.href = "login.html?next=" + encodeURIComponent("aulas-de-gramatica-interface-do-professor.html");
+    }
+
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    async function waitForProfessorAuthResources() {
+      for (let i = 0; i < 10; i++) {
+        if (window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured()) return true;
+        await sleep(150);
+      }
+      return !!(window.Auth && window.SUPABASE_CONFIG && Auth.isConfigured());
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function setFeedback(message, type) {
+      const feedback = document.getElementById("formFeedback");
+      feedback.textContent = message || "";
+      feedback.className = "feedback" + (type ? " " + type : "");
+    }
+
+    async function verifyTeacherAdmin() {
+      const client = Auth.getClient();
+      const response = await client.rpc("is_teacher_admin");
+      if (response.error) throw response.error;
+      return response.data === true;
+    }
+
+    function resetForm() {
+      document.getElementById("lessonId").value = "";
+      document.getElementById("lessonTitle").value = "";
+      document.getElementById("videoUrl").value = "";
+      document.getElementById("exerciseUrl").value = "";
+      document.getElementById("formTitle").textContent = "Criar nova lição de gramática";
+      document.getElementById("submitButton").textContent = "SALVAR LIÇÃO";
+      document.getElementById("cancelEditButton").style.display = "none";
+      setFeedback("", "");
+    }
+
+    function startEdit(id) {
+      const lesson = grammarLessons.find(function (item) { return item.id === id; });
+      if (!lesson) return;
+      document.getElementById("lessonId").value = lesson.id;
+      document.getElementById("lessonTitle").value = lesson.title || "";
+      document.getElementById("videoUrl").value = lesson.video_url || "";
+      document.getElementById("exerciseUrl").value = lesson.exercise_url || "";
+      document.getElementById("formTitle").textContent = "Editar lição de gramática";
+      document.getElementById("submitButton").textContent = "SALVAR ALTERAÇÕES";
+      document.getElementById("cancelEditButton").style.display = "inline-flex";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function renderHistory() {
+      const target = document.getElementById("lessonsHistory");
+      if (!grammarLessons || grammarLessons.length === 0) {
+        target.className = "empty";
+        target.innerHTML = "Nenhuma lição de gramática foi criada ainda.";
+        return;
+      }
+
+      target.className = "";
+      target.innerHTML = grammarLessons.map(function (lesson) {
+        return '<article class="lesson-admin-card">' +
+          '<strong>' + escapeHtml(lesson.title) + '</strong>' +
+          '<p><b>Vídeo:</b> ' + escapeHtml(lesson.video_url) + '</p>' +
+          '<p><b>Exercícios:</b> ' + escapeHtml(lesson.exercise_url) + '</p>' +
+          '<div class="card-actions">' +
+            '<button class="edit-button" type="button" data-edit-id="' + lesson.id + '">EDITAR</button>' +
+            '<button class="delete-button" type="button" data-delete-id="' + lesson.id + '">EXCLUIR</button>' +
+          '</div>' +
+        '</article>';
+      }).join("");
+
+      document.querySelectorAll("[data-edit-id]").forEach(function (button) {
+        button.addEventListener("click", function () { startEdit(button.dataset.editId); });
+      });
+
+      document.querySelectorAll("[data-delete-id]").forEach(function (button) {
+        button.addEventListener("click", function () { deleteLesson(button.dataset.deleteId); });
+      });
+    }
+
+    async function loadGrammarLessons() {
+      const client = Auth.getClient();
+      const response = await client
+        .from("grammar_lessons")
+        .select("id,title,video_url,exercise_url,created_at")
+        .order("created_at", { ascending: false });
+
+      if (response.error) throw response.error;
+      grammarLessons = response.data || [];
+      renderHistory();
+    }
+
+    async function saveLesson(event) {
+      event.preventDefault();
+      const client = Auth.getClient();
+      const id = document.getElementById("lessonId").value;
+      const title = document.getElementById("lessonTitle").value.trim();
+      const videoUrl = document.getElementById("videoUrl").value.trim();
+      const exerciseUrl = document.getElementById("exerciseUrl").value.trim();
+      const submitButton = document.getElementById("submitButton");
+
+      submitButton.disabled = true;
+      setFeedback("Salvando...", "");
+
+      try {
+        let response;
+        if (id) {
+          response = await client
+            .from("grammar_lessons")
+            .update({ title: title, video_url: videoUrl, exercise_url: exerciseUrl, updated_at: new Date().toISOString() })
+            .eq("id", id);
+        } else {
+          response = await client
+            .from("grammar_lessons")
+            .insert({ title: title, video_url: videoUrl, exercise_url: exerciseUrl, created_by: currentProfessorSession.user.id });
+        }
+
+        if (response.error) throw response.error;
+        setFeedback(id ? "Lição atualizada com sucesso." : "Lição criada com sucesso.", "success");
+        resetForm();
+        await loadGrammarLessons();
+      } catch (error) {
+        setFeedback("Erro ao salvar. Verifique se o arquivo supabase_aulas_de_gramatica.sql já foi executado no Supabase.", "error");
+      } finally {
+        submitButton.disabled = false;
+      }
+    }
+
+    async function deleteLesson(id) {
+      const lesson = grammarLessons.find(function (item) { return item.id === id; });
+      const label = lesson ? lesson.title : "esta lição";
+      if (!confirm("Tem certeza de que deseja excluir " + label + "?")) return;
+
+      const client = Auth.getClient();
+      const response = await client.from("grammar_lessons").delete().eq("id", id);
+      if (response.error) {
+        setFeedback("Erro ao excluir a lição.", "error");
+        return;
+      }
+      setFeedback("Lição excluída com sucesso.", "success");
+      await loadGrammarLessons();
+    }
+
+    async function guardProfessorPage() {
+      const status = document.getElementById("adminStatus");
+      const resourcesReady = await waitForProfessorAuthResources();
+
+      if (!resourcesReady) {
+        status.textContent = "Não foi possível carregar a autenticação. Atualize a página ou limpe o cache do navegador.";
+        document.body.classList.remove("auth-checking");
+        return;
+      }
+
+      currentProfessorSession = await Auth.getSession();
+      if (!currentProfessorSession || !currentProfessorSession.user) {
+        redirectProfessorToLogin();
+        return;
+      }
+
+      try {
+        const isAdmin = await verifyTeacherAdmin();
+        if (!isAdmin) {
+          status.textContent = "Acesso negado. Este usuário não está cadastrado como professor.";
+          document.body.classList.remove("auth-checking");
+          return;
+        }
+
+        status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
+        document.body.classList.remove("auth-checking");
+        await loadGrammarLessons();
+      } catch (error) {
+        status.textContent = "Não foi possível verificar o acesso de professor. Execute os scripts SQL administrativos no Supabase.";
+        document.body.classList.remove("auth-checking");
+      }
+    }
+
+    document.getElementById("lessonForm").addEventListener("submit", saveLesson);
+    document.getElementById("cancelEditButton").addEventListener("click", resetForm);
+    guardProfessorPage();
+  </script>
+  <script src="animated_cards.js?v=20260430-4"></script>
+</body>
+</html>
