@@ -35,6 +35,49 @@
     pointer-events: none;
   }
 
+  .home-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .45rem;
+    min-width: 132px;
+    padding: .78rem 1.35rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: linear-gradient(135deg, rgba(200,16,46,.92), rgba(0,40,104,.92));
+    color: var(--white);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: .12em;
+    text-decoration: none;
+    box-shadow: 0 12px 30px rgba(0,0,0,.28), 0 0 26px rgba(200,16,46,.28);
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  }
+
+  .home-button:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,215,0,.55);
+    box-shadow: 0 16px 36px rgba(0,0,0,.36), 0 0 34px rgba(255,215,0,.18);
+  }
+
+  .top-home-button {
+    position: absolute;
+    top: 1.4rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+  }
+
+  .top-home-button:hover {
+    transform: translateX(-50%) translateY(-2px);
+  }
+
+  .bottom-home-button-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 2.2rem 0 0;
+  }
+
   /* ── HERO ── */
   .hero {
     position: relative;
@@ -337,6 +380,8 @@
   }
   @media(max-width:600px) {
     .grid-2 { grid-template-columns: 1fr; }
+    .top-home-button { top: 1rem; }
+    .home-button { min-width: 118px; padding: .68rem 1.05rem; font-size: .95rem; }
   }
 
   /* ── FOOTER ── */
@@ -389,6 +434,8 @@
 
 <!-- ══════════════ HERO ══════════════ -->
 <section class="hero">
+  <a class="home-button top-home-button" href="https://teacherflavius.com/aluno.html">← INÍCIO</a>
+
   <div class="hero-badge">
     <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
   </div>
@@ -594,6 +641,9 @@
   <div class="section" data-delay="0" style="margin-top:3rem;">
     <div class="alert">
       ⚖️ OS CASOS E SITUAÇÕES NÃO MENCIONADOS NESTE DOCUMENTO SERÃO ANALISADOS PELA ESCOLA EM CARÁTER DE EXCEPCIONALIDADE.
+    </div>
+    <div class="bottom-home-button-wrap">
+      <a class="home-button" href="https://teacherflavius.com/aluno.html">← INÍCIO</a>
     </div>
   </div>
 
