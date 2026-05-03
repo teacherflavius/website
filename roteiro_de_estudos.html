@@ -50,6 +50,12 @@
       color: #818cf8;
       transform: translateX(4px);
     }
+    .lesson-description {
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.55;
+      margin-top: -4px;
+    }
     .completion-row {
       display: flex;
       align-items: center;
@@ -124,6 +130,23 @@
       "lesson-14": "https://drive.google.com/file/d/1616T4D-rOJUFVjQksrgicKxSowjJ1w1B/view?usp=drivesdk"
     };
 
+    const lessonDescriptions = {
+      "lesson-1": "Nesta aula, você vai aprender a se apresentar em inglês de forma simples, clara e natural, falando sobre informações pessoais básicas.",
+      "lesson-2": "Nesta aula, você vai aprender a fazer perguntas simples e educadas para conhecer outra pessoa em inglês, falando sobre aspectos gerais da vida dela sem ser invasivo, inconveniente ou excessivamente pessoal.",
+      "lesson-3": "Nesta aula, você vai aprender a falar sobre sua rotina em inglês, descrevendo atividades habituais de maneira simples, clara e organizada.",
+      "lesson-4": "Nesta aula, você vai aprender a expressar seus gostos e preferências em inglês de forma simples, clara e natural, falando sobre aquilo de que gosta, não gosta e prefere em diferentes situações do dia a dia.",
+      "lesson-5": "Nesta aula, você vai aprender a falar sobre sua família e sobre pessoas próximas em inglês, descrevendo quem essas pessoas são, qual é sua relação com elas e algumas características básicas de cada uma.",
+      "lesson-6": "Nesta aula, você vai aprender a descrever a sua aparência física e a sua personalidade em inglês, utilizando vocabulário básico e estruturas simples para falar de forma clara e natural.",
+      "lesson-7": "Nesta aula, você vai aprender a falar sobre sua casa em inglês, descrevendo o tipo de moradia em que vive, os cômodos da casa e algumas características básicas de cada ambiente.",
+      "lesson-8": "Nesta aula, você vai aprender a falar sobre comidas e bebidas em inglês, nomeando itens comuns da alimentação do dia a dia e descrevendo aquilo de que gosta, não gosta e prefere comer ou beber.",
+      "lesson-9": "Nesta aula, você vai aprender a falar sobre a sua cidade e lugares que você frequenta.",
+      "lesson-10": "Nesta aula, você vai aprender a falar sobre coisas que você gosta de comprar e preços.",
+      "lesson-11": "Nesta aula, você vai aprender a falar sobre coisas que você gosta de fazer no seu tempo livre.",
+      "lesson-12": "Nesta aula, você vai aprender a falar sobre datas, horários e compromissos.",
+      "lesson-13": "Nesta aula, você vai aprender a falar sobre coisas que já aconteceram contigo.",
+      "lesson-14": "Nesta aula, você vai aprender a falar sobre coisas que você consegue fazer e habilidades que você tem."
+    };
+
     function redirectToLogin() {
       window.location.href = "login.html?next=" + encodeURIComponent("roteiro_de_estudos.html");
     }
@@ -149,6 +172,12 @@
       return '<a class="lesson-title" href="' + lessonUrl + '" target="_blank" rel="noopener noreferrer">' + inner + '</a>';
     }
 
+    function renderLessonDescription(lessonId) {
+      const description = lessonDescriptions[lessonId];
+      if (!description) return "";
+      return '<p class="lesson-description">' + description + '</p>';
+    }
+
     function renderLessons() {
       const grid = document.getElementById("lessonsGrid");
       const cards = [];
@@ -159,6 +188,7 @@
         cards.push(
           '<div class="lesson-card ' + (isDone ? 'done' : '') + '" data-lesson-id="' + lessonId + '">' +
             renderLessonTitle(lessonId, title) +
+            renderLessonDescription(lessonId) +
             '<div class="completion-row">' +
               '<button type="button" class="completion-button" data-lesson-id="' + lessonId + '">' + (isDone ? 'MARCAR COMO NÃO FEITA' : 'MARCAR COMO FEITA') + '</button>' +
               '<span class="completion-status ' + (isDone ? 'saved' : '') + '" id="status-' + lessonId + '">' + (isDone ? 'Feita' : 'Não feita') + '</span>' +
