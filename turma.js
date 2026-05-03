@@ -35,6 +35,18 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function getStudentRefId(student) {
+  return String(student.student_ref_id || student.user_id || student.invite_id || student.id || "");
+}
+
+function getStudentRefType(student) {
+  return String(student.student_ref_type || (student.user_id ? "user" : "invite"));
+}
+
+function getStudentKey(student) {
+  return getStudentRefType(student) + ":" + getStudentRefId(student);
+}
+
 function setClassTitle(className) {
   currentClassName = className || ("Turma " + currentClassNumber);
   const title = document.getElementById("classTitle");
@@ -64,16 +76,13 @@ function formatDateInput(value) {
 function parseBrazilianShortDate(value) {
   const match = String(value || "").match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
   if (!match) throw new Error("Informe a data no formato DD/MM/AA.");
-
   const day = Number(match[1]);
   const month = Number(match[2]);
   const year = 2000 + Number(match[3]);
   const date = new Date(year, month - 1, day);
-
   if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
     throw new Error("Data inválida. Use o formato DD/MM/AA.");
   }
-
   return String(year) + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0");
 }
 
@@ -87,22 +96,18 @@ function formatBrazilianDate(value) {
 }
 
 function isEnrolled(student) {
-  return student.enrolled === true || student.enrolled === "true" || !!student.enrollment_code || !!student.email;
-}
-
-function getStudentId(student) {
-  return student.user_id || student.id;
+  return student.enrolled === true || student.enrolled === "true" || !!student.enrollment_code || !!student.email || !!student.invite_id || student.pre_enrollment_status === "pending";
 }
 
 function getClassStudents() {
   return allStudents.filter(function (student) {
-    return classStudentIds.has(getStudentId(student));
+    return classStudentIds.has(getStudentKey(student));
   });
 }
 
 function getAvailableStudents() {
   return allStudents.filter(function (student) {
-    return !classStudentIds.has(getStudentId(student));
+    return !classStudentIds.has(getStudentKey(student));
   });
 }
 
@@ -151,8 +156,9 @@ function groupHistoryByClassDate(records) {
 
 function renderHistoryCard(group) {
   const studentsHtml = group.records.map(function (record) {
+    const preLabel = record.student_ref_type === "invite" ? " — pré-matriculado" : "";
     return '<p><b>' + escapeHtml(record.student_name || "Aluno sem nome") + ':</b> ' +
-      escapeHtml(record.attendance_status || "Sem status") +
+      escapeHtml(record.attendance_status || "Sem status") + preLabel +
       (record.student_email ? ' — ' + escapeHtml(record.student_email) : '') +
     '</p>';
   }).join("");
@@ -168,7 +174,6 @@ function renderHistoryCard(group) {
 async function renderClassHistory() {
   const list = document.getElementById("classHistoryList");
   if (!list) return;
-
   try {
     const records = await loadClassHistory();
     if (!records.length) {
@@ -176,13 +181,12 @@ async function renderClassHistory() {
       list.textContent = "Nenhuma aula foi registrada para os alunos desta turma ainda.";
       return;
     }
-
     const groups = groupHistoryByClassDate(records);
     list.className = "";
     list.innerHTML = Object.keys(groups).map(function (key) { return renderHistoryCard(groups[key]); }).join("");
   } catch (error) {
     list.className = "error";
-    list.textContent = "Não foi possível carregar o histórico da turma. Reexecute supabase_turmas.sql no Supabase.";
+    list.textContent = "Não foi possível carregar o histórico da turma. Execute supabase_pre_matriculas_turmas.sql no Supabase.";
   }
 }
 
@@ -210,7 +214,6 @@ async function saveClassResources(event) {
   const message = document.getElementById("classResourcesMessage");
   message.className = "empty";
   message.textContent = "Salvando links...";
-
   try {
     const client = Auth.getClient();
     const response = await client.rpc("save_teacher_class_resources", {
@@ -231,11 +234,11 @@ async function saveClassResources(event) {
 async function addSelectedStudentsToClass() {
   const button = document.getElementById("addSelectedStudentsButton");
   const message = document.getElementById("modalStudentsMessage");
-  const selectedIds = Array.from(document.querySelectorAll(".modal-student-checkbox:checked")).map(function (checkbox) {
-    return checkbox.value;
+  const selected = Array.from(document.querySelectorAll(".modal-student-checkbox:checked")).map(function (checkbox) {
+    return { refId: checkbox.dataset.refId, refType: checkbox.dataset.refType };
   });
 
-  if (!selectedIds.length) {
+  if (!selected.length) {
     message.className = "error";
     message.textContent = "Selecione pelo menos um aluno.";
     return;
@@ -248,10 +251,11 @@ async function addSelectedStudentsToClass() {
 
   try {
     const client = Auth.getClient();
-    for (const userId of selectedIds) {
-      const response = await client.rpc("add_teacher_class_student", {
+    for (const item of selected) {
+      const response = await client.rpc("add_teacher_class_student_by_ref", {
         target_class_number: currentClassNumber,
-        target_user_id: userId
+        target_student_ref_id: item.refId,
+        target_student_ref_type: item.refType
       });
       if (response.error) throw response.error;
     }
@@ -259,64 +263,67 @@ async function addSelectedStudentsToClass() {
     closeStudentsModal();
   } catch (error) {
     message.className = "error";
-    message.textContent = "Não foi possível adicionar os alunos: " + (error.message || "erro desconhecido") + ". Execute supabase_turmas.sql no Supabase.";
+    message.textContent = "Não foi possível adicionar os alunos: " + (error.message || "erro desconhecido") + ". Execute supabase_pre_matriculas_turmas.sql no Supabase.";
   } finally {
     button.disabled = false;
     button.textContent = "ADICIONAR ALUNOS SELECIONADOS";
   }
 }
 
-async function removeStudentFromClass(userId, button) {
+async function removeStudentFromClass(refId, refType, button) {
   const confirmed = window.confirm("Remover este aluno de " + (currentClassName || "Turma " + currentClassNumber) + "?");
   if (!confirmed) return;
-
   button.disabled = true;
   button.textContent = "REMOVENDO...";
-
   try {
     const client = Auth.getClient();
-    const response = await client.rpc("remove_teacher_class_student", {
+    const response = await client.rpc("remove_teacher_class_student_by_ref", {
       target_class_number: currentClassNumber,
-      target_user_id: userId
+      target_student_ref_id: refId,
+      target_student_ref_type: refType
     });
     if (response.error) throw response.error;
     await refreshLists();
   } catch (error) {
-    alert("Não foi possível remover o aluno: " + (error.message || "erro desconhecido") + ". Execute supabase_turmas.sql no Supabase.");
+    alert("Não foi possível remover o aluno: " + (error.message || "erro desconhecido") + ". Execute supabase_pre_matriculas_turmas.sql no Supabase.");
     button.disabled = false;
     button.textContent = "REMOVER DA TURMA";
   }
 }
 
 function renderStudentCard(student, action) {
-  const userId = escapeHtml(getStudentId(student));
-  const name = escapeHtml(student.name || student.email || "Aluno sem nome");
-  const email = escapeHtml(student.email || "Não informado");
+  const refId = escapeHtml(getStudentRefId(student));
+  const refType = escapeHtml(getStudentRefType(student));
+  const name = escapeHtml(student.name || student.student_name || student.email || "Aluno sem nome");
+  const email = escapeHtml(student.email || student.student_email || "Não informado");
   const enrollmentCode = escapeHtml(student.enrollment_code || "Não informado");
-  const button = action === "remove" ? '<button class="delete-button remove-class-student" data-user-id="' + userId + '">REMOVER DA TURMA</button>' : '';
+  const preLabel = getStudentRefType(student) === "invite" ? ' <span class="pill pending">Pré-matriculado</span>' : '';
+  const button = action === "remove" ? '<button class="delete-button remove-class-student" data-ref-id="' + refId + '" data-ref-type="' + refType + '">REMOVER DA TURMA</button>' : '';
 
   return '<div class="student-card">' +
-    '<strong>' + name + '</strong>' +
+    '<strong>' + name + preLabel + '</strong>' +
     '<p><b>E-mail:</b> ' + email + '</p>' +
-    '<p><b>Número de matrícula:</b> ' + enrollmentCode + '</p>' +
+    '<p><b>Código:</b> ' + enrollmentCode + '</p>' +
     button +
   '</div>';
 }
 
 function renderModalStudentOption(student) {
-  const userId = escapeHtml(getStudentId(student));
+  const refId = escapeHtml(getStudentRefId(student));
+  const refType = escapeHtml(getStudentRefType(student));
   const name = escapeHtml(student.name || student.email || "Aluno sem nome");
   const email = escapeHtml(student.email || "Não informado");
   const enrollmentCode = escapeHtml(student.enrollment_code || "Não informado");
+  const status = getStudentRefType(student) === "invite" ? "Pré-matriculado" : "Matriculado";
   return '<label class="modal-student-option">' +
-    '<input class="modal-student-checkbox" type="checkbox" value="' + userId + '" />' +
-    '<span><strong>' + name + '</strong><span>' + email + '</span><span>Matrícula: ' + enrollmentCode + '</span></span>' +
+    '<input class="modal-student-checkbox" type="checkbox" value="' + refType + ':' + refId + '" data-ref-id="' + refId + '" data-ref-type="' + refType + '" />' +
+    '<span><strong>' + name + '</strong><span>' + email + '</span><span>' + status + ' · Código: ' + enrollmentCode + '</span></span>' +
   '</label>';
 }
 
 function studentMatchesSearch(student, term) {
   if (!term) return true;
-  const haystack = [student.name, student.email, student.enrollment_code, student.cpf, student.whatsapp]
+  const haystack = [student.name, student.email, student.enrollment_code, student.cpf, student.whatsapp, student.pre_enrollment_status]
     .map(function (value) { return String(value || "").toLowerCase(); })
     .join(" ");
   return haystack.includes(term.toLowerCase());
@@ -326,18 +333,15 @@ function renderAvailableStudentsModal() {
   const list = document.getElementById("availableStudentsList");
   const message = document.getElementById("modalStudentsMessage");
   if (!list) return;
-
   const availableStudents = getAvailableStudents().filter(function (student) {
     return studentMatchesSearch(student, modalSearchTerm);
   });
-
   if (!availableStudents.length) {
     list.className = "empty";
     list.textContent = getAvailableStudents().length ? "Nenhum aluno encontrado para essa busca." : "Não há alunos disponíveis para adicionar a esta turma.";
     if (message) message.textContent = "";
     return;
   }
-
   list.className = "modal-student-list";
   list.innerHTML = availableStudents.map(renderModalStudentOption).join("");
   if (message) {
@@ -367,41 +371,40 @@ function closeStudentsModal() {
 function renderAttendanceStudents() {
   const list = document.getElementById("attendanceStudentsList");
   if (!list) return;
-
   const classStudents = getClassStudents();
   if (!classStudents.length) {
     list.className = "empty";
     list.textContent = "Adicione alunos à turma antes de registrar uma aula.";
     return;
   }
-
   list.className = "";
   list.innerHTML = classStudents.map(function (student) {
-    const userId = escapeHtml(getStudentId(student));
+    const refId = escapeHtml(getStudentRefId(student));
+    const refType = escapeHtml(getStudentRefType(student));
     const name = escapeHtml(student.name || student.email || "Aluno sem nome");
     const email = escapeHtml(student.email || "Não informado");
+    const preLabel = getStudentRefType(student) === "invite" ? " · Pré-matriculado" : "";
     return '<div class="class-attendance-row">' +
-      '<label><input type="checkbox" class="attendance-student-check" data-user-id="' + userId + '" checked />' + name + '</label>' +
+      '<label><input type="checkbox" class="attendance-student-check" data-ref-id="' + refId + '" data-ref-type="' + refType + '" checked />' + name + preLabel + '</label>' +
       '<p style="color:#94a3b8; font-size:13px; margin-bottom:8px;"><b>E-mail:</b> ' + email + '</p>' +
-      '<select class="attendance-status" data-user-id="' + userId + '">' +
+      '<select class="attendance-status" data-ref-id="' + refId + '" data-ref-type="' + refType + '">' +
         '<option value="Compareceu">Compareceu</option>' +
         '<option value="Faltou">Faltou</option>' +
       '</select>' +
-      '<textarea class="attendance-notes" data-user-id="' + userId + '" placeholder="Observação individual opcional para este aluno..."></textarea>' +
+      '<textarea class="attendance-notes" data-ref-id="' + refId + '" data-ref-type="' + refType + '" placeholder="Observação individual opcional para este aluno..."></textarea>' +
     '</div>';
   }).join("");
 }
 
 function attachClassButtons() {
   document.querySelectorAll(".remove-class-student").forEach(function (button) {
-    button.addEventListener("click", function () { removeStudentFromClass(button.dataset.userId, button); });
+    button.addEventListener("click", function () { removeStudentFromClass(button.dataset.refId, button.dataset.refType, button); });
   });
 }
 
 function renderLists() {
   const classList = document.getElementById("classStudentsList");
   const classStudents = getClassStudents();
-
   if (!classStudents.length) {
     classList.className = "empty";
     classList.textContent = "Nenhum aluno adicionado a esta turma ainda.";
@@ -409,7 +412,6 @@ function renderLists() {
     classList.className = "";
     classList.innerHTML = classStudents.map(function (student) { return renderStudentCard(student, "remove"); }).join("");
   }
-
   renderAttendanceStudents();
   renderAvailableStudentsModal();
   attachClassButtons();
@@ -417,7 +419,11 @@ function renderLists() {
 
 async function refreshLists() {
   const classRows = await loadClassStudents();
-  classStudentIds = new Set(classRows.map(function (row) { return row.user_id; }));
+  classStudentIds = new Set(classRows.map(function (row) {
+    const refId = row.student_ref_id || row.user_id || row.invite_id;
+    const refType = row.student_ref_type || (row.user_id ? "user" : "invite");
+    return refType + ":" + refId;
+  }));
   renderLists();
   await renderClassHistory();
 }
@@ -427,33 +433,31 @@ async function saveClassAttendance(event) {
   const message = document.getElementById("attendanceMessage");
   message.className = "empty";
   message.textContent = "Salvando frequência...";
-
   try {
     const classDate = parseBrazilianShortDate(document.getElementById("classDate").value);
     const generalNotes = document.getElementById("classNotes").value.trim();
     const selectedChecks = Array.from(document.querySelectorAll(".attendance-student-check:checked"));
     if (!selectedChecks.length) throw new Error("Selecione pelo menos um aluno para registrar a aula.");
-
     const attendanceRecords = selectedChecks.map(function (checkbox) {
-      const userId = checkbox.dataset.userId;
-      const statusInput = document.querySelector('.attendance-status[data-user-id="' + userId + '"]');
-      const notesInput = document.querySelector('.attendance-notes[data-user-id="' + userId + '"]');
+      const refId = checkbox.dataset.refId;
+      const refType = checkbox.dataset.refType;
+      const statusInput = document.querySelector('.attendance-status[data-ref-id="' + refId + '"][data-ref-type="' + refType + '"]');
+      const notesInput = document.querySelector('.attendance-notes[data-ref-id="' + refId + '"][data-ref-type="' + refType + '"]');
       return {
-        user_id: userId,
+        student_ref_id: refId,
+        student_ref_type: refType,
         attendance_status: statusInput ? statusInput.value : "Compareceu",
         class_notes: notesInput && notesInput.value.trim() ? notesInput.value.trim() : generalNotes
       };
     });
-
     const client = Auth.getClient();
-    const response = await client.rpc("save_teacher_class_attendance", {
+    const response = await client.rpc("save_teacher_class_attendance_by_ref", {
       target_class_number: currentClassNumber,
       target_class_date: classDate,
       target_general_notes: generalNotes,
       attendance_records: attendanceRecords
     });
     if (response.error) throw response.error;
-
     document.getElementById("classAttendanceForm").reset();
     renderAttendanceStudents();
     await renderClassHistory();
@@ -468,29 +472,24 @@ async function saveClassAttendance(event) {
 async function guardPage() {
   const status = document.getElementById("adminStatus");
   currentClassNumber = getClassNumber();
-
   if (!currentClassNumber) {
     document.getElementById("classTitle").textContent = "Turma inválida";
     status.textContent = "Informe uma turma válida.";
     document.body.classList.remove("auth-checking");
     return;
   }
-
   setClassTitle("Carregando turma...");
-
   const resourcesReady = await waitForAuthResources();
   if (!resourcesReady) {
     status.textContent = "Não foi possível carregar a autenticação. Atualize a página ou limpe o cache do navegador.";
     document.body.classList.remove("auth-checking");
     return;
   }
-
   currentProfessorSession = await Auth.getSession();
   if (!currentProfessorSession || !currentProfessorSession.user) {
     redirectToLogin();
     return;
   }
-
   try {
     status.textContent = "Professor autenticado: " + currentProfessorSession.user.email + ".";
     const classInfo = await loadCurrentClassInfo();
@@ -500,32 +499,25 @@ async function guardPage() {
     await refreshLists();
     document.body.classList.remove("auth-checking");
   } catch (error) {
-    status.textContent = "Não foi possível carregar a turma: " + (error.message || "erro desconhecido") + ". Execute supabase_turmas.sql no Supabase.";
+    status.textContent = "Não foi possível carregar a turma: " + (error.message || "erro desconhecido") + ". Execute supabase_pre_matriculas_turmas.sql no Supabase.";
     document.body.classList.remove("auth-checking");
   }
 }
 
 const classDateInput = document.getElementById("classDate");
 if (classDateInput) classDateInput.addEventListener("input", function () { this.value = formatDateInput(this.value); });
-
 const classResourcesForm = document.getElementById("classResourcesForm");
 if (classResourcesForm) classResourcesForm.addEventListener("submit", saveClassResources);
-
 const classAttendanceForm = document.getElementById("classAttendanceForm");
 if (classAttendanceForm) classAttendanceForm.addEventListener("submit", saveClassAttendance);
-
 const openStudentsModalButton = document.getElementById("openStudentsModalButton");
 if (openStudentsModalButton) openStudentsModalButton.addEventListener("click", openStudentsModal);
-
 const closeStudentsModalButton = document.getElementById("closeStudentsModalButton");
 if (closeStudentsModalButton) closeStudentsModalButton.addEventListener("click", closeStudentsModal);
-
 const cancelStudentsModalButton = document.getElementById("cancelStudentsModalButton");
 if (cancelStudentsModalButton) cancelStudentsModalButton.addEventListener("click", closeStudentsModal);
-
 const addSelectedStudentsButton = document.getElementById("addSelectedStudentsButton");
 if (addSelectedStudentsButton) addSelectedStudentsButton.addEventListener("click", addSelectedStudentsToClass);
-
 const studentModalSearch = document.getElementById("studentModalSearch");
 if (studentModalSearch) {
   studentModalSearch.addEventListener("input", function () {
@@ -533,7 +525,6 @@ if (studentModalSearch) {
     renderAvailableStudentsModal();
   });
 }
-
 const studentsModal = document.getElementById("studentsModal");
 if (studentsModal) {
   studentsModal.addEventListener("click", function (event) {
