@@ -19,6 +19,9 @@
     .primary-button, .secondary-button { border: 1.5px solid rgba(129,140,248,0.45); background: rgba(129,140,248,0.10); color: #c4b5fd; border-radius: 12px; padding: 12px 15px; font-family: Georgia, serif; font-size: 13px; font-weight: bold; cursor: pointer; letter-spacing: 0.4px; }
     .primary-button:hover, .secondary-button:hover { background: rgba(129,140,248,0.18); border-color: rgba(129,140,248,0.75); }
     .secondary-button { border-color: rgba(148,163,184,0.35); background: rgba(148,163,184,0.08); color: #cbd5e1; }
+    .danger-button { border: 1.5px solid rgba(248,113,113,0.45); background: rgba(248,113,113,0.10); color: #fca5a5; border-radius: 12px; padding: 12px 15px; font-family: Georgia, serif; font-size: 13px; font-weight: bold; cursor: pointer; letter-spacing: 0.4px; }
+    .danger-button:hover { background: rgba(248,113,113,0.18); border-color: rgba(248,113,113,0.75); }
+    .danger-button:disabled { opacity: 0.55; cursor: not-allowed; }
     .invite-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 15px; margin-bottom: 12px; }
     .invite-card strong { display:block; color:#f1f5f9; font-size:16px; margin-bottom:7px; }
     .invite-card p { color:#cbd5e1; font-size:13px; line-height:1.55; margin-bottom:5px; word-break:break-word; }
@@ -148,6 +151,7 @@
           '<div class="actions">' +
             '<button class="secondary-button" type="button" data-copy-link="' + escapeHtml(link) + '">COPIAR LINK</button>' +
             '<button class="secondary-button" type="button" data-copy-code="' + code + '">COPIAR CÓDIGO</button>' +
+            '<button class="danger-button" type="button" data-delete-id="' + escapeHtml(invite.id) + '" data-delete-name="' + escapeHtml(invite.student_name) + '">EXCLUIR</button>' +
           '</div>' +
         '</article>';
       }).join("");
@@ -158,6 +162,11 @@
       document.querySelectorAll("[data-copy-code]").forEach(function(button) {
         button.addEventListener("click", function() { copyText(button.dataset.copyCode); });
       });
+      document.querySelectorAll("[data-delete-id]").forEach(function(button) {
+        button.addEventListener("click", function() {
+          deleteInvite(button.dataset.deleteId, button.dataset.deleteName, button);
+        });
+      });
     }
 
     async function copyText(text) {
@@ -166,6 +175,40 @@
         setFeedback("Copiado.", "success");
       } catch (error) {
         setFeedback("Não foi possível copiar automaticamente. Copie manualmente o texto exibido.", "error");
+      }
+    }
+
+    async function deleteInvite(inviteId, studentName, button) {
+      const confirmed = window.confirm(
+        'Tem certeza que deseja excluir o convite de matrícula de "' + studentName + '"? Esta ação não pode ser desfeita.'
+      );
+
+      if (!confirmed) return;
+
+      const client = Auth.getClient();
+
+      if (button) button.disabled = true;
+      setFeedback("Excluindo convite...", "");
+
+      try {
+        const response = await client
+          .from("student_enrollment_invites")
+          .delete()
+          .eq("id", inviteId);
+
+        if (response.error) throw response.error;
+
+        invites = invites.filter(function(invite) {
+          return invite.id !== inviteId;
+        });
+
+        renderInvites();
+        setFeedback("Convite excluído com sucesso.", "success");
+      } catch (error) {
+        console.error(error);
+        setFeedback("Não foi possível excluir o convite. Verifique as permissões no Supabase.", "error");
+      } finally {
+        if (button) button.disabled = false;
       }
     }
 
