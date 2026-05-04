@@ -49,8 +49,9 @@
       font-size:17px;
       text-decoration:none;
     }
+    .class-order-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .class-actions { display:grid; grid-template-columns:1fr; gap:10px; }
-    .open-class-button, .remove-class-button {
+    .open-class-button, .remove-class-button, .move-class-button {
       width:100%;
       display:inline-flex;
       align-items:center;
@@ -65,7 +66,8 @@
     }
     .open-class-button { border:1.5px solid rgba(129,140,248,0.45); background:rgba(129,140,248,0.10); color:#c4b5fd; }
     .remove-class-button { border:1.5px solid rgba(248,113,113,0.45); background:rgba(248,113,113,0.08); color:#fca5a5; }
-    .remove-class-button:disabled { opacity:0.65; cursor:not-allowed; }
+    .move-class-button { border:1.5px solid rgba(148,163,184,0.35); background:rgba(148,163,184,0.08); color:#cbd5e1; }
+    .remove-class-button:disabled, .move-class-button:disabled { opacity:0.45; cursor:not-allowed; }
     @media (min-width: 680px) { .class-actions { grid-template-columns:1fr 1fr; } }
   </style>
 </head>
@@ -97,7 +99,7 @@
     <div id="classesGrid" class="menu-grid"></div>
   </div>
 
-  <script src="turmas.js?v=20260429-1"></script>
+  <script src="turmas.js?v=20260504-1"></script>
   <script src="animated_cards.js?v=20260429-1"></script>
 </body>
 </html>
