@@ -34,6 +34,29 @@
       .replace(/'/g, "&#039;");
   }
 
+  function cssEscape(value) {
+    if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(String(value || ""));
+    return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+  }
+
+  function getStudentRefId(student) {
+    return String(student.student_ref_id || student.user_id || student.invite_id || student.id || "").trim();
+  }
+
+  function getStudentRefType(student) {
+    return String(student.student_ref_type || (student.user_id ? "user" : "invite")).trim();
+  }
+
+  function getStudentKey(student) {
+    return getStudentRefType(student) + ":" + getStudentRefId(student);
+  }
+
+  function isValidStudentRef(student) {
+    var refId = getStudentRefId(student);
+    var refType = getStudentRefType(student);
+    return !!refId && (refType === "user" || refType === "invite");
+  }
+
   function formatBrazilianDate(value) {
     if (!value) return "";
     var parts = String(value).split("-");
@@ -79,16 +102,23 @@
     return response.data || [];
   }
 
-  function groupRecordsByUser(records) {
+  function groupRecordsByStudentRef(records) {
     return records.reduce(function (map, record) {
-      var userId = String(record.user_id || "");
-      if (!map[userId]) map[userId] = [];
-      map[userId].push(record);
+      var refType = String(record.student_ref_type || (record.user_id ? "user" : "invite")).trim();
+      var refId = String(record.student_ref_id || record.user_id || record.invite_id || "").trim();
+      if (!refId) return map;
+      var key = refType + ":" + refId;
+      if (!map[key]) map[key] = [];
+      map[key].push(record);
       return map;
     }, {});
   }
 
   function renderRecordRows(student, records) {
+    var refId = getStudentRefId(student);
+    var refType = getStudentRefType(student);
+    var safeKey = escapeHtml(getStudentKey(student));
+
     var rows = (records || []).map(function (record) {
       return '<tr>' +
         '<td>' + escapeHtml(formatBrazilianDate(record.class_date)) + '</td>' +
@@ -98,9 +128,9 @@
     }).join("");
 
     rows += '<tr>' +
-      '<td><input class="lesson-date-input" type="date" value="' + todayIso() + '" data-user-id="' + escapeHtml(student.user_id) + '" /></td>' +
-      '<td><select class="lesson-select" data-user-id="' + escapeHtml(student.user_id) + '">' + lessonOptions("") + '</select></td>' +
-      '<td><button class="lesson-save-button" type="button" data-user-id="' + escapeHtml(student.user_id) + '">SALVAR</button></td>' +
+      '<td><input class="lesson-date-input" type="date" value="' + todayIso() + '" data-student-key="' + safeKey + '" data-ref-id="' + escapeHtml(refId) + '" data-ref-type="' + escapeHtml(refType) + '" /></td>' +
+      '<td><select class="lesson-select" data-student-key="' + safeKey + '" data-ref-id="' + escapeHtml(refId) + '" data-ref-type="' + escapeHtml(refType) + '">' + lessonOptions("") + '</select></td>' +
+      '<td><button class="lesson-save-button" type="button" data-student-key="' + safeKey + '" data-ref-id="' + escapeHtml(refId) + '" data-ref-type="' + escapeHtml(refType) + '">SALVAR</button></td>' +
     '</tr>';
 
     return rows;
@@ -109,11 +139,12 @@
   function renderStudentTable(student, records) {
     var name = student.student_name || student.name || student.student_email || "Aluno sem nome";
     var enrollment = student.enrollment_code || "Não informado";
+    var preLabel = getStudentRefType(student) === "invite" ? " · Pré-matriculado" : "";
 
     return '<div class="lesson-attendance-card">' +
       '<table class="lesson-attendance-table">' +
         '<thead>' +
-          '<tr><th>' + escapeHtml(name) + '</th><th colspan="2">Matrícula: ' + escapeHtml(enrollment) + '</th></tr>' +
+          '<tr><th>' + escapeHtml(name + preLabel) + '</th><th colspan="2">Matrícula: ' + escapeHtml(enrollment) + '</th></tr>' +
         '</thead>' +
         '<tbody>' + renderRecordRows(student, records) + '</tbody>' +
       '</table>' +
@@ -121,12 +152,19 @@
   }
 
   async function saveLessonRecord(button) {
-    var userId = button.dataset.userId;
-    var dateInput = document.querySelector('.lesson-date-input[data-user-id="' + userId + '"]');
-    var lessonSelect = document.querySelector('.lesson-select[data-user-id="' + userId + '"]');
+    var studentKey = button.dataset.studentKey;
+    var refId = String(button.dataset.refId || "").trim();
+    var refType = String(button.dataset.refType || "").trim();
+    var escapedKey = cssEscape(studentKey);
+    var dateInput = document.querySelector('.lesson-date-input[data-student-key="' + escapedKey + '"]');
+    var lessonSelect = document.querySelector('.lesson-select[data-student-key="' + escapedKey + '"]');
     var classNumber = getClassNumber();
 
     if (!dateInput || !lessonSelect || !classNumber) return;
+    if (!refId || (refType !== "user" && refType !== "invite")) {
+      alert("Não foi possível identificar este aluno. Atualize a página e tente novamente.");
+      return;
+    }
     if (!dateInput.value) {
       alert("Escolha uma data.");
       return;
@@ -141,16 +179,17 @@
 
     try {
       var client = Auth.getClient();
-      var response = await client.rpc("save_teacher_class_lesson_record", {
+      var response = await client.rpc("save_teacher_class_lesson_record_by_ref", {
         target_class_number: classNumber,
-        target_user_id: userId,
+        target_student_ref_id: refId,
+        target_student_ref_type: refType,
         target_class_date: dateInput.value,
         target_lesson_code: lessonSelect.value
       });
       if (response.error) throw response.error;
       await renderLessonAttendance();
     } catch (error) {
-      alert("Não foi possível salvar o registro: " + (error.message || "erro desconhecido") + ". Execute supabase_licoes_opcoes_extras.sql no Supabase.");
+      alert("Não foi possível salvar o registro: " + (error.message || "erro desconhecido") + ". Execute supabase_licoes_pre_matriculas_fix.sql no Supabase.");
       button.disabled = false;
       button.textContent = "SALVAR";
     }
@@ -172,9 +211,9 @@
     try {
       var ready = await waitForAuthResources();
       if (!ready) throw new Error("Supabase não configurado.");
-      var students = await loadClassStudents(classNumber);
+      var students = (await loadClassStudents(classNumber)).filter(isValidStudentRef);
       var records = await loadLessonRecords(classNumber);
-      var grouped = groupRecordsByUser(records);
+      var grouped = groupRecordsByStudentRef(records);
 
       if (!students.length) {
         target.className = "empty";
@@ -184,12 +223,12 @@
 
       target.className = "";
       target.innerHTML = students.map(function (student) {
-        return renderStudentTable(student, grouped[String(student.user_id)] || []);
+        return renderStudentTable(student, grouped[getStudentKey(student)] || []);
       }).join("");
       attachSaveButtons();
     } catch (error) {
       target.className = "error";
-      target.textContent = "Não foi possível carregar a tabela de frequência. Execute supabase_licoes_turma.sql no Supabase.";
+      target.textContent = "Não foi possível carregar a tabela de frequência. Execute supabase_licoes_pre_matriculas_fix.sql no Supabase.";
     }
   }
 
