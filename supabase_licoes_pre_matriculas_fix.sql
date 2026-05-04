@@ -52,8 +52,11 @@ create unique index if not exists class_lesson_records_class_invite_date_unique_
 create index if not exists class_lesson_records_invite_id_idx
   on public.class_lesson_records(invite_id);
 
+-- A assinatura de retorno desta função muda. Por isso, é obrigatório derrubá-la antes de recriar.
+drop function if exists public.get_teacher_class_lesson_records(integer);
+
 -- Atualiza a listagem para devolver referência genérica user/invite.
-create or replace function public.get_teacher_class_lesson_records(target_class_number integer)
+create function public.get_teacher_class_lesson_records(target_class_number integer)
 returns table (
   id text,
   class_number integer,
