@@ -196,6 +196,7 @@ async function renderClassResources() {
     const resources = await loadClassResources();
     document.getElementById("videoLessonUrl").value = resources && resources.video_lesson_url ? resources.video_lesson_url : "";
     document.getElementById("lessonMaterialUrl").value = resources && resources.lesson_material_url ? resources.lesson_material_url : "";
+    document.getElementById("recordedLessonsUrl").value = resources && resources.recorded_lessons_url ? resources.recorded_lessons_url : "";
     document.getElementById("whatsappGroupUrl").value = resources && resources.whatsapp_group_url ? resources.whatsapp_group_url : "";
     if (message) {
       message.className = "empty";
@@ -204,7 +205,7 @@ async function renderClassResources() {
   } catch (error) {
     if (message) {
       message.className = "error";
-      message.textContent = "Não foi possível carregar os links da turma. Reexecute supabase_turmas.sql no Supabase.";
+      message.textContent = "Não foi possível carregar os links da turma. Reexecute supabase_aulas_gravadas.sql no Supabase.";
     }
   }
 }
@@ -220,6 +221,7 @@ async function saveClassResources(event) {
       target_class_number: currentClassNumber,
       target_video_lesson_url: document.getElementById("videoLessonUrl").value.trim(),
       target_lesson_material_url: document.getElementById("lessonMaterialUrl").value.trim(),
+      target_recorded_lessons_url: document.getElementById("recordedLessonsUrl").value.trim(),
       target_whatsapp_group_url: document.getElementById("whatsappGroupUrl").value.trim()
     });
     if (response.error) throw response.error;
@@ -227,7 +229,7 @@ async function saveClassResources(event) {
     message.textContent = "Links da turma salvos.";
   } catch (error) {
     message.className = "error";
-    message.textContent = "Não foi possível salvar os links: " + (error.message || "erro desconhecido") + ". Reexecute supabase_turmas.sql no Supabase.";
+    message.textContent = "Não foi possível salvar os links: " + (error.message || "erro desconhecido") + ". Reexecute supabase_aulas_gravadas.sql no Supabase.";
   }
 }
 
