@@ -43,11 +43,8 @@ $$;
 
 grant execute on function public.get_teacher_class_resources(integer) to authenticated;
 
--- Necessário porque a assinatura mudou para incluir target_recorded_lessons_url.
-drop function if exists public.save_teacher_class_resources(integer, text, text, text);
-drop function if exists public.save_teacher_class_resources(integer, text, text, text, text);
-
-create function public.save_teacher_class_resources(
+-- Função nova, com target_recorded_lessons_url.
+create or replace function public.save_teacher_class_resources(
   target_class_number integer,
   target_video_lesson_url text,
   target_lesson_material_url text,
@@ -75,10 +72,10 @@ begin
   )
   values (
     target_class_number,
-    nullif(target_video_lesson_url, ''),
-    nullif(target_lesson_material_url, ''),
-    nullif(target_recorded_lessons_url, ''),
-    nullif(target_whatsapp_group_url, '')
+    nullif(trim(coalesce(target_video_lesson_url, '')), ''),
+    nullif(trim(coalesce(target_lesson_material_url, '')), ''),
+    nullif(trim(coalesce(target_recorded_lessons_url, '')), ''),
+    nullif(trim(coalesce(target_whatsapp_group_url, '')), '')
   )
   on conflict (class_number) do update
   set
@@ -92,6 +89,39 @@ end;
 $$;
 
 grant execute on function public.save_teacher_class_resources(integer, text, text, text, text) to authenticated;
+
+-- Compatibilidade: mantém a assinatura antiga de 4 parâmetros.
+-- Importante: esta versão preserva recorded_lessons_url já salvo, em vez de apagá-lo.
+create or replace function public.save_teacher_class_resources(
+  target_class_number integer,
+  target_video_lesson_url text,
+  target_lesson_material_url text,
+  target_whatsapp_group_url text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  existing_recorded_lessons_url text;
+begin
+  select cr.recorded_lessons_url
+  into existing_recorded_lessons_url
+  from public.class_resources cr
+  where cr.class_number = target_class_number;
+
+  return public.save_teacher_class_resources(
+    target_class_number,
+    target_video_lesson_url,
+    target_lesson_material_url,
+    existing_recorded_lessons_url,
+    target_whatsapp_group_url
+  );
+end;
+$$;
+
+grant execute on function public.save_teacher_class_resources(integer, text, text, text) to authenticated;
 
 -- Necessário porque a estrutura de retorno mudou para incluir recorded_lessons_url.
 drop function if exists public.get_my_student_class();
