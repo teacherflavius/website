@@ -1,15 +1,224 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="0; url=/exercicios-diarios/">
-  <title>Redirecionando para Exercícios Diários</title>
-  <script>
-    window.location.replace('/exercicios-diarios/' + window.location.search + window.location.hash);
-  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Exercícios Diários - Teacher Flávio</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase_config.js"></script>
+  <script src="auth.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px 48px; font-family: Georgia, serif; color: #f1f5f9; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .container { width: 100%; max-width: 760px; animation: fadeInUp 0.5s ease; }
+    .top-links { display: flex; gap: 10px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+    .top-link { display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(129,140,248,0.35); border-radius: 10px; padding: 9px 16px; color: #818cf8; font-size: 13px; font-family: Georgia, serif; text-decoration: none; }
+    .badge { display: inline-block; background: linear-gradient(90deg, #818cf8, #a78bfa); color: #fff; font-size: 11px; font-family: monospace; letter-spacing: 3px; padding: 4px 14px; border-radius: 20px; margin-bottom: 12px; }
+    .header { text-align: center; margin-bottom: 26px; }
+    .header h1 { color: #f1f5f9; font-size: 38px; font-weight: bold; letter-spacing: -1px; margin-bottom: 8px; }
+    .status { color: #cbd5e1; font-size: 13px; line-height: 1.5; margin-top: 10px; }
+    .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(129,140,248,0.3), transparent); margin-bottom: 32px; }
+    .menu-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .exercise-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px; transition: transform 0.2s, border-color 0.2s, background 0.2s; backdrop-filter: blur(12px); }
+    .exercise-card.done { border-color: rgba(110,231,183,0.45); background: rgba(110,231,183,0.07); }
+    .exercise-card:hover { transform: translateY(-3px); border-color: rgba(129,140,248,0.5); background: rgba(129,140,248,0.07); }
+    .exercise-link { display: flex; align-items: center; justify-content: space-between; gap: 18px; color: #f1f5f9; font-size: 17px; font-weight: bold; letter-spacing: 0.5px; text-decoration: none; }
+    .exercise-link span:first-child { display: flex; align-items: center; gap: 12px; }
+    .icon { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #818cf8, #a78bfa); display: inline-flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .arrow { color: #475569; font-size: 22px; transition: color 0.2s, transform 0.2s; }
+    .exercise-card:hover .arrow { color: #818cf8; transform: translateX(4px); }
+    .completion-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .completion-label { display: inline-flex; align-items: center; gap: 10px; color: #cbd5e1; font-size: 14px; cursor: pointer; user-select: none; }
+    .completion-label input { width: 22px; height: 22px; accent-color: #818cf8; cursor: pointer; }
+    .completion-status { color: #94a3b8; font-size: 12px; text-align: right; min-width: 90px; }
+    .completion-status.saved { color: #6ee7b7; }
+    .completion-status.error { color: #fca5a5; }
+    .blocked-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 20px; color: #cbd5e1; line-height: 1.6; text-align: center; }
+    @media (min-width: 760px) { .menu-grid { grid-template-columns: 1fr 1fr; } }
+  </style>
 </head>
 <body>
-  <p>Redirecionando para <a href="/exercicios-diarios/">Exercícios Diários</a>...</p>
+  <div class="container">
+    <div class="top-links">
+      <a class="top-link" href="index.html">HOME</a>
+      <a class="top-link" href="area_do_estudante.html">ÁREA DO ESTUDANTE</a>
+    </div>
+
+    <div class="header">
+      <div><span class="badge">TEACHER FLÁVIO</span></div>
+      <h1>Exercícios Diários</h1>
+      <div id="pageStatus" class="status">Verificando acesso...</div>
+    </div>
+
+    <div class="divider"></div>
+    <div id="exerciseGrid" class="menu-grid"></div>
+  </div>
+
+  <script>
+    const fixedDailyExercises = [
+      { id: "2026-04-29", title: "Exercício 29.04.26", url: "https://forms.gle/oiP88rifiYJGuSPj8" },
+      { id: "2026-04-28", title: "Exercício 28.04.26", url: "https://forms.gle/1CzvmKQ3jbeMFiej9" },
+      { id: "2026-04-27", title: "Exercício 27.04.26", url: "https://forms.gle/68XaJ7MceURf9w2f7" },
+      { id: "2026-04-24", title: "Exercício 24.04.26", url: "https://forms.gle/ThUsnQXk7ijtfTr86" },
+      { id: "2026-04-23", title: "Exercício 23.04.26", url: "https://docs.google.com/document/d/1kvdEwj0WWOgx80hDmAP9aLncHG3ZRXegcXpUktutrbY/edit?usp=drivesdk" },
+      { id: "2026-04-22", title: "Exercício 22.04.26", url: "https://forms.gle/6oqZffmkcUNDSTwLA" },
+      { id: "2026-04-20", title: "Exercício 20.04.26", url: "https://forms.gle/yVGVp2yE61Utb9V19" },
+      { id: "2026-04-17", title: "Exercício 17.04.26", url: "https://forms.gle/oZzmQEoDVLTLB6vK6" },
+      { id: "2026-04-16", title: "Exercício 16.04.26", url: "https://docs.google.com/document/d/1aEk5PK36iCQ3hE6ktmGjZ_ZMap5Qkz1woaQV5oG7XBg/edit?usp=drivesdk" },
+      { id: "2026-04-15", title: "Exercício 15.04.26", url: "https://forms.gle/VFrTyV7BdhJfrGkQA" },
+      { id: "2026-04-14", title: "Exercício 14.04.26", url: "https://forms.gle/vFXKR5DtWWsi2rNCA" },
+      { id: "2026-04-13", title: "Exercício 13.04.26", url: "https://forms.gle/w6abhGRxnWwHTdjs9" },
+      { id: "2026-04-06", title: "Exercício 06.04.26", url: "https://forms.gle/qTWuPFKm8qkHmBAg8" },
+      { id: "2026-03-30", title: "Exercício 30.03.26", url: "https://forms.gle/4FmaxFuRGoz5e2pb6" }
+    ];
+
+    let dailyExercises = fixedDailyExercises.slice();
+    let currentUser = null;
+    let completedExercises = new Map();
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function setPageStatus(text) { document.getElementById("pageStatus").textContent = text; }
+    function isEnrolledProfile(profile) { return !!profile && (profile.enrolled === true || profile.enrolled === "true" || !!profile.enrollment_code); }
+
+    function blockPage(message) {
+      const grid = document.getElementById("exerciseGrid");
+      grid.className = "";
+      grid.innerHTML = '<div class="blocked-panel">' + escapeHtml(message) + '</div>';
+    }
+
+    async function loadTeacherCreatedExercises() {
+      const client = Auth.getClient();
+      const response = await client.rpc("get_public_teacher_exercises");
+      if (response.error) throw response.error;
+      return (response.data || []).map(function (item) {
+        return { id: item.exercise_id, title: item.exercise_title, url: item.exercise_url };
+      });
+    }
+
+    function mergeExercises(createdExercises) {
+      const seen = new Set();
+      dailyExercises = createdExercises.concat(fixedDailyExercises).filter(function (exercise) {
+        if (!exercise.id || seen.has(exercise.id)) return false;
+        seen.add(exercise.id);
+        return true;
+      });
+    }
+
+    function renderExercises() {
+      const grid = document.getElementById("exerciseGrid");
+      grid.className = "menu-grid";
+      grid.innerHTML = dailyExercises.map(function (exercise) {
+        const isDone = completedExercises.get(exercise.id) === true;
+        return '<div class="exercise-card ' + (isDone ? 'done' : '') + '" data-exercise-id="' + escapeHtml(exercise.id) + '">' +
+          '<a class="exercise-link" href="' + escapeHtml(exercise.url) + '" target="_blank" rel="noopener noreferrer">' +
+            '<span><span class="icon">📝</span>' + escapeHtml(exercise.title) + '</span><span class="arrow">›</span>' +
+          '</a>' +
+          '<div class="completion-row">' +
+            '<label class="completion-label"><input class="completion-checkbox" type="checkbox" data-exercise-id="' + escapeHtml(exercise.id) + '" ' + (isDone ? 'checked' : '') + ' /><span>Já fiz este exercício</span></label>' +
+            '<span class="completion-status ' + (isDone ? 'saved' : '') + '" id="status-' + escapeHtml(exercise.id) + '">' + (isDone ? 'Feito' : 'Não feito') + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+
+      document.querySelectorAll(".completion-checkbox").forEach(function (checkbox) {
+        checkbox.addEventListener("change", function () { saveExerciseCompletion(checkbox.dataset.exerciseId, checkbox.checked, checkbox); });
+      });
+    }
+
+    async function loadCompletedExercises() {
+      const client = Auth.getClient();
+      const response = await client.from("daily_exercise_completion").select("exercise_id, completed").eq("user_id", currentUser.id);
+      if (response.error) throw response.error;
+      completedExercises = new Map((response.data || []).map(function (row) { return [row.exercise_id, row.completed === true]; }));
+    }
+
+    async function saveExerciseCompletion(exerciseId, completed, checkbox) {
+      const exercise = dailyExercises.find(function (item) { return item.id === exerciseId; });
+      const status = document.getElementById("status-" + exerciseId);
+      const card = document.querySelector('[data-exercise-id="' + exerciseId + '"]');
+      const client = Auth.getClient();
+      checkbox.disabled = true;
+      status.className = "completion-status";
+      status.textContent = "Salvando...";
+
+      try {
+        const response = await client.from("daily_exercise_completion").upsert({
+          user_id: currentUser.id,
+          exercise_id: exercise.id,
+          exercise_title: exercise.title,
+          exercise_url: exercise.url,
+          completed: completed,
+          completed_at: completed ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "user_id,exercise_id" });
+
+        if (response.error) throw response.error;
+        completedExercises.set(exerciseId, completed);
+        if (card) card.classList.toggle("done", completed);
+        status.className = "completion-status saved";
+        status.textContent = completed ? "Feito" : "Não feito";
+      } catch (error) {
+        checkbox.checked = !completed;
+        if (card) card.classList.toggle("done", !completed);
+        status.className = "completion-status error";
+        status.textContent = "Erro ao salvar";
+      } finally {
+        checkbox.disabled = false;
+      }
+    }
+
+    async function initPage() {
+      document.getElementById("exerciseGrid").innerHTML = "";
+
+      if (!window.Auth || !Auth.isConfigured()) {
+        if (window.Auth && Auth.showConfigWarning) Auth.showConfigWarning();
+        setPageStatus("Supabase ainda não configurado.");
+        blockPage("Não foi possível verificar sua matrícula.");
+        return;
+      }
+
+      const session = await Auth.getSession();
+      if (!session || !session.user) {
+        window.location.href = "login.html?next=" + encodeURIComponent("exercicios-diarios/");
+        return;
+      }
+
+      currentUser = session.user;
+
+      try {
+        const profile = await Auth.getProfile();
+        if (!isEnrolledProfile(profile)) {
+          setPageStatus("Acesso restrito a alunos matriculados.");
+          blockPage("Esta página está disponível apenas para alunos matriculados.");
+          return;
+        }
+
+        try {
+          const createdExercises = await loadTeacherCreatedExercises();
+          mergeExercises(createdExercises);
+        } catch (error) {
+          mergeExercises([]);
+        }
+
+        try {
+          await loadCompletedExercises();
+        } catch (error) {
+          completedExercises = new Map();
+        }
+
+        renderExercises();
+        setPageStatus("Aluno conectado: " + currentUser.email + ".");
+      } catch (error) {
+        setPageStatus("Não foi possível carregar seus registros.");
+        blockPage("Não foi possível verificar sua matrícula ou carregar seus exercícios.");
+      }
+    }
+
+    initPage();
+  </script>
 </body>
 </html>
